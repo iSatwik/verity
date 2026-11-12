@@ -48,7 +48,7 @@ async function geminiJSON(parts: unknown[], log: (l: AiLog) => void, purpose: st
   return null;
 }
 
-interface RawIssue {
+export interface RawIssue {
   category?: string;
   source_id?: string;
   source_quote?: string;
@@ -57,9 +57,9 @@ interface RawIssue {
   explanation?: string;
   suggestion?: string;
 }
-interface RawReview { intent?: Partial<Intent>; issues?: RawIssue[] }
+export interface RawReview { intent?: Partial<Intent>; issues?: RawIssue[] }
 
-function buildPrompt(maskedText: string, channel: string, canon: Canon, already: Finding[]): string {
+export function buildPrompt(maskedText: string, channel: string, canon: Canon, already: Finding[]): string {
   const rules = canon.rules
     .filter((r) => ["voice", "messaging", "claims", "imported"].includes(r.category))
     .map((r) => `${r.id}: ${r.body}${r.do_example ? ` | Do: ${r.do_example}` : ""}${r.dont_example ? ` | Don't: ${r.dont_example}` : ""}`)
