@@ -41,6 +41,7 @@ export function analysePixels(data: ArrayLike<number>, channels: number, size: {
   const total = pixels.length;
   const palette = canon.palette.map((p) => ({ ...p, parsed: parse(p.hex)! }));
   const ON_BRAND_DE = 6; // CIEDE2000; above ~6 the colour difference is clearly visible
+  const SHADE_HUE = 20, SHADE_CHROMA = 15; // degrees of hue, LCh chroma units
 
   // Per-pixel: is this pixel a brand colour (or a neutral like white/grey/black)?
   const cache = new Map<number, { onBrand: boolean; nearest: (typeof palette)[number]; d: number }>();
@@ -51,8 +52,15 @@ export function analysePixels(data: ArrayLike<number>, channels: number, size: {
     const col = { mode: "rgb" as const, r: p[0] / 255, g: p[1] / 255, b: p[2] / 255 };
     let nearest = palette[0], best = Infinity;
     for (const pc of palette) { const d = de(col, pc.parsed); if (d < best) { best = d; nearest = pc; } }
-    const chroma = toLch(col)?.c ?? 0;
-    const r = { onBrand: chroma < 10 || best <= ON_BRAND_DE, nearest, d: best };
+    const lch = toLch(col);
+    const chroma = lch?.c ?? 0;
+    // A tint or shade of a brand colour (same hue, lighter or darker, no more saturated) also counts, e.g. shading in product photos.
+    const shade = chroma >= 10 && palette.some((pc) => {
+      const pl = toLch(pc.parsed); if (!pl || (pl.c ?? 0) < 5) return false;
+      let dh = Math.abs((lch?.h ?? 0) - (pl.h ?? 0)); dh = Math.min(dh, 360 - dh);
+      return dh <= SHADE_HUE && chroma - (pl.c ?? 0) <= SHADE_CHROMA;
+    });
+    const r = { onBrand: chroma < 10 || best <= ON_BRAND_DE || shade, nearest, d: best };
     cache.set(key, r);
     return r;
   };
@@ -76,7 +84,7 @@ export function analysePixels(data: ArrayLike<number>, channels: number, size: {
       findings.push({
         location: "image", category: "visual", severity: "major", method: "code",
         title: "Colour not in the brand palette",
-        message: `${hex} covers about ${Math.round(share * 100)}% of the image. Nearest brand colour: ${k.nearest?.name} ${k.nearest?.hex} (difference ΔE ${Math.round(k.d * 10) / 10}; above ${ON_BRAND_DE} is a visibly different colour).`,
+        message: `${hex} covers about ${Math.round(share * 100)}% of the image. Nearest brand colour: ${k.nearest?.name} ${k.nearest?.hex} (difference ΔE ${Math.round(k.d * 10) / 10}; above ${ON_BRAND_DE} is a visibly different colour, and it is not a lighter or darker shade of a brand colour).`,
         quote: hex, suggestion: k.nearest?.hex ?? null,
         sources: [{ id: "VI-1", kind: "rule", text: paletteText }],
       });
@@ -88,7 +96,9 @@ export function analysePixels(data: ArrayLike<number>, channels: number, size: {
   if (opts.hasText && colours.length > 1) {
     const bg = colours[0];
     const candidates = colours.slice(1).filter((c) => c.share >= 0.015 && c.share < 0.45);
-    const textLike = candidates.filter((c) => { const l = toLch(parse(c.hex)!)?.l ?? 50; return l > 85 || l < 20; });
+    // Text is a light or dark neutral that stands apart from the background; shadows of the background's own colour are not text.
+    const bgL = toLch(parse(bg.hex)!)?.l ?? 50;
+    const textLike = candidates.filter((c) => { const l = toLch(parse(c.hex)!)?.l ?? 50; return (l > 80 || l < 25) && Math.abs(l - bgL) >= 30; });
     const pool = textLike.length ? textLike : candidates;
     let worst: { fg: string; ratio: number } | null = null;
     for (const c of pool) {

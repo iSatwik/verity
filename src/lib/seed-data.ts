@@ -46,7 +46,7 @@ export const RULES: RuleSeed[] = [
   { id: "C-5.1", category: "claims", title: "Prices and offers must be current", body: "Prices, offers and delivery terms must match a currently valid fact.", severity: "blocker" },
   { id: "C-5.2", category: "claims", title: "Offers need an end date", body: "Offers must state the end date.", severity: "major" },
   // Visual
-  { id: "VI-1", category: "visual", title: "Brand colours only", body: "Brand colours only: Forest #2E6B3F, Saffron #E8772E, Cream #F4EFE2, Ink #1D2129. Any other dominant colour needs approval.", severity: "major" },
+  { id: "VI-1", category: "visual", title: "Brand colours only", body: "Brand colours only: Forest #2E6B3F, Saffron #E8772E, Cream #F4EFE2, Ink #1D2129. Lighter or darker shades of these (for example shading in product photos) are fine. Any other dominant colour needs approval.", severity: "major" },
   { id: "VI-2", category: "visual", title: "Brand fonts", body: "Headings in Playfair Display, body text in Inter.", severity: "minor" },
   { id: "VI-3", category: "visual", title: "Logo use", body: "Logo: never stretched, recoloured or rotated; clear space equal to the height of the \"A\" on all sides.", severity: "major" },
   { id: "VI-4", category: "visual", title: "Readable text on images", body: "Text on images must meet WCAG AA contrast: 4.5:1 for normal text, 3:1 for large text.", severity: "blocker" },

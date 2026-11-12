@@ -175,8 +175,8 @@ export function Workspace({ data }: { data: WorkspaceData }) {
                       <button type="button" onClick={async () => {
                         const blob = await (await fetch("/samples/creative-s01-fixed.jpg")).blob();
                         setNewImage(await fileToDataUrl(blob));
-                        setImgText("Clearer skin, naturally. See visibly fewer blemishes in 4 weeks of regular use. ₹349");
-                        setAlt("Neem Purifying Cleanser bottle on a forest-green background with the text: Clearer skin, naturally. See visibly fewer blemishes in 4 weeks of regular use. ₹349");
+                        setImgText("Clearer skin, naturally. See visibly fewer blemishes in 4 weeks of regular use. ₹349. Aranya Naturals Neem Purifying Cleanser 100 ml");
+                        setAlt("Aranya Naturals Neem Purifying Cleanser bottle with neem leaves on a forest-green background. Text: Clearer skin, naturally. See visibly fewer blemishes in 4 weeks of regular use. ₹349");
                       }} className="text-sm text-brand-700 underline underline-offset-2">Use the designer&apos;s corrected image (demo)</button>
                     )}
                     {(newImage ?? sub.image_data) && <button type="button" onClick={() => setNewImage("")} className="text-sm text-gray-500 hover:text-gray-800">Remove image</button>}
