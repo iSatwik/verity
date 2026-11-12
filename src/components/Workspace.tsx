@@ -271,6 +271,7 @@ function NextStep({ data, required, exceptions, isCreatorSide }: { data: Workspa
   else if (sub.status === "in_review" && data.required.includes(myRole as "manager" | "compliance") && waitingFor.includes(PERSON[myRole])) msg = <><b>Your review.</b> Read the content and the creator&apos;s decisions, then approve or request changes.</>;
   else if (sub.status === "in_review") msg = <>Waiting for review by {waitingFor.join(" and ")}. {isCreatorSide ? "You'll see their decision here." : "Switch role at the top right to review as them."}</>;
   else if (sub.status === "approved") msg = <><b>Approved and locked.</b> This exact version can be published.</>;
+  else if (sub.status === "changes_requested" && last) msg = <><b>{last.name} asked for changes:</b> “{last.note}”. Waiting for the creator to update it.</>;
   else if (["needs_fixes", "ready", "changes_requested"].includes(sub.status)) msg = <>The creator is still working on this.</>;
   if (!msg) return null;
   return <div className={`rounded-lg px-4 py-3 text-[14px] ${sub.status === "approved" ? "bg-brand-50 text-brand-700" : "bg-gray-100 text-gray-800"}`}>{msg}</div>;
