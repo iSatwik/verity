@@ -14,7 +14,7 @@ export default async function AuditPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
-        <p className="text-sm text-gray-500">Every check, fix, dismissal, comment, approval and Brand Canon change, with who did it and when. AI calls are listed separately with the masked text that was sent.</p>
+        <p className="text-sm text-gray-500">Every check, fix, dismissal, comment, approval and brand rule change, with who did it and when. AI calls are listed separately with the masked text that was sent.</p>
       </div>
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -27,7 +27,7 @@ export default async function AuditPage() {
                   <td className="whitespace-nowrap px-4 py-2 text-xs text-gray-500">{timeAgo(e.created_at)}</td>
                   <td className="whitespace-nowrap px-2 py-2">{getUser(e.actor_id).name}</td>
                   <td className="px-2 py-2 font-mono text-xs">{e.action}</td>
-                  <td className="px-2 py-2 text-xs">{e.submission_id ? <Link className="underline" href={`/submissions/${e.submission_id}`}>#{e.submission_id} {e.title}</Link> : "Brand Canon"}</td>
+                  <td className="px-2 py-2 text-xs">{e.submission_id ? <Link className="underline" href={`/submissions/${e.submission_id}`}>#{e.submission_id} {e.title}</Link> : "Brand rules"}</td>
                   <td className="max-w-md px-2 py-2 text-xs text-gray-600"><code className="break-words">{JSON.stringify(d)}</code></td>
                 </tr>
               );

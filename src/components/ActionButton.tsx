@@ -44,7 +44,7 @@ export function ActionButton({
             router.refresh();
           });
         }}
-        className={`inline-flex items-center justify-center gap-1.5 rounded-lg border font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${small ? "h-7 px-2.5 text-xs" : "h-9 px-3.5 text-sm"} ${VARIANTS[variant]} ${className}`}
+        className={`inline-flex items-center justify-center gap-1.5 rounded-md border font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${small ? "h-7 px-2.5 text-xs" : "h-9 px-3.5 text-sm"} ${VARIANTS[variant]} ${className}`}
       >
         {pending && <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />}
         {children}

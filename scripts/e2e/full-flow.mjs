@@ -14,7 +14,7 @@ const clickText = async (text, sel = "button,label") => {
   await idle();
 };
 const body = () => page.evaluate(() => document.body.innerText);
-const role = async (name) => { await page.goto(BASE, { waitUntil: "networkidle0" }); await clickText(`Continue as ${name}`); await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {}); };
+const role = async (name) => { await page.goto(BASE, { waitUntil: "networkidle0" }); await clickText(name, "main button"); await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {}); };
 
 await role("Rahul");
 await page.goto(BASE + "/submissions", { waitUntil: "networkidle0" });
@@ -22,11 +22,11 @@ const href = await page.evaluate(() => [...document.querySelectorAll("a")].find(
 const url = BASE + href;
 await page.goto(url, { waitUntil: "networkidle0" });
 await clickText("Accept all");
-await clickText("Edit content");
+await clickText("Edit", "button");
 await clickText("Use the designer");
 await wait(800);
-await clickText("Save changes");
-await clickText("Run check again"); await wait(800);
+await clickText("Save", "button");
+await clickText("Run check").catch(() => clickText("Check again")); await wait(800);
 await page.goto(url, { waitUntil: "networkidle0" });
 await shot("10-creator-fixed");
 let t = await body();
@@ -51,7 +51,7 @@ t = await body(); console.log("final:", t.match(/Approved and locked[^\n]*/)?.[0
 // comment as Ritika on a selection
 await page.evaluate(() => { const m = document.querySelector(".whitespace-pre-wrap"); const r = document.createRange(); r.selectNodeContents(m.firstChild); const s = getSelection(); s.removeAllRanges(); s.addRange(r); m.dispatchEvent(new MouseEvent("mouseup", { bubbles: true })); });
 await wait(300);
-await page.type("textarea[placeholder^='Comment as']", "Love the new creative.");
+await page.type("textarea[placeholder^='Write a comment']", "Love the new creative.");
 await clickText("Post comment");
 // other pages
 for (const p of ["/insights", "/audit", "/canon", "/canon?tab=facts", "/review", "/about"]) { await page.goto(BASE + p, { waitUntil: "networkidle0" }); await shot("20" + p.replace(/[/?=]/g, "_")); }

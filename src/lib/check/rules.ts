@@ -234,7 +234,7 @@ export function runCodeChecks(canon: Canon, text: string, channel: string, locat
         category: "claims",
         severity: "blocker",
         title: "Unsupported result claim",
-        message: `No approved fact supports this result${product ? ` for ${product.name}` : ""} ${claimed}. Remove the claim or add evidence to the Brand Canon first.`,
+        message: `No approved fact supports this result${product ? ` for ${product.name}` : ""} ${claimed}. Remove the claim or add evidence to the brand rules first.`,
         quote: clause.text,
         suggestion: null,
         sources: [ruleRef(canon, "C-1.2"), ruleRef(canon, "C-1.1")],

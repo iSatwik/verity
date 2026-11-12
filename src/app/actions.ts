@@ -129,10 +129,10 @@ export async function commentAction(subId: number, body: string, quote: string |
   return wrap(() => store.addComment(q, subId, actor, body, quote), [`/submissions/${subId}`]);
 }
 
-// ---------- Brand Canon (admin) ----------
+// ---------- brand rules (admin) ----------
 async function requireAdmin() {
   const u = await currentUser();
-  if (u.role !== "admin") throw new Error("Only the brand admin can change the Brand Canon. Switch to Satwik (Brand admin) at the top right.");
+  if (u.role !== "admin") throw new Error("Only the brand admin can change the brand rules. Switch to Satwik (Brand admin) at the top right.");
   return u;
 }
 async function bumpCanon(actor: string, what: string, detail: Record<string, unknown>) {
@@ -153,7 +153,7 @@ export async function saveFactAction(form: FormData): Promise<ActionResult> {
       ON CONFLICT (id) DO UPDATE SET statement=$2, product_id=$3, kind=$4, source=$5, owner=$6, valid_from=$7, valid_until=$8, status=$9, suggested_copy=$10, duration_days=$11, price=$12, check_pattern=$13, check_value=$14, keywords=$15, updated_at=now()`,
       [id.toUpperCase(), statement, s(form, "product_id"), s(form, "kind") ?? "claim", s(form, "source"), s(form, "owner"), s(form, "valid_from"), s(form, "valid_until"), s(form, "status") ?? "active", s(form, "suggested_copy"), s(form, "duration_days"), s(form, "price"), s(form, "check_pattern"), s(form, "check_value"), s(form, "keywords")]);
     await bumpCanon(u.id, "fact.saved", { id });
-    return `Saved ${id.toUpperCase()}. The Brand Canon version went up by one.`;
+    return `Saved ${id.toUpperCase()}. The Brand rules version went up by one.`;
   }, ["/canon"]);
 }
 export async function deleteCanonItemAction(table: "facts" | "terms" | "rules" | "confidential_terms", id: string): Promise<ActionResult> {

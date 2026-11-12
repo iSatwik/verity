@@ -12,16 +12,16 @@
 }
 
 html { color-scheme: light; }
-body { background: #f6f7f9; color: #1d2129; }
+body { background: #fafafa; color: #1d2129; }
 
 mark.hl { color: inherit; border-radius: 3px; padding: 1px 1px; cursor: pointer; }
-mark.hl-blocker { background: #fbd9d5; border-bottom: 2px solid #d92d20; }
-mark.hl-major { background: #fdebc8; border-bottom: 2px solid #dc8a00; }
-mark.hl-minor { background: #dde5fb; border-bottom: 2px solid #3b5bdb; }
+mark.hl-blocker { background: #fdecea; border-bottom: 2px solid #e5484d; }
+mark.hl-major { background: #fff4e0; border-bottom: 2px solid #f5a524; }
+mark.hl-minor { background: transparent; border-bottom: 2px solid #7cb7e8; }
 mark.hl-advisory { background: #eceef1; border-bottom: 2px dashed #8a909a; }
-mark.hl-done { background: transparent; border-bottom: 2px solid #b2dcca; }
+mark.hl-done { background: transparent; border-bottom: none; }
 
 .flash { animation: flash 1.2s ease-out 1; }
-@keyframes flash { 0% { box-shadow: 0 0 0 3px #1b7a5e; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes flash { 0% { background: #eef7f3; } 100% { background: transparent; } }
 
 :focus-visible { outline: 2px solid #1b7a5e; outline-offset: 2px; }

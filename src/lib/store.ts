@@ -152,7 +152,7 @@ export async function dismissFinding(q: Q, fid: number, actor: DemoUser, reason:
   if (!reason) throw new Error("Pick a reason.");
   const full = `${reason}${note ? `: ${note}` : ""}`;
   const status = f.severity === "blocker" ? "exception_requested" : "dismissed";
-  if (f.severity === "blocker" && !note.trim()) throw new Error("Blockers need a written explanation. A reviewer must approve the exception.");
+  if (f.severity === "blocker" && !note.trim()) throw new Error("Must-fix issues need a written explanation. A reviewer has to approve the exception.");
   await q("UPDATE findings SET status = $2, decided_by = $3, decision_reason = $4 WHERE id = $1", [fid, status, actor.id, full]);
   await audit(q, actor.id, status === "dismissed" ? "finding.dismissed" : "finding.exception_requested", sub.id, { finding: f.id, title: f.title, rule: f.sources?.[0]?.id, reason: full });
   await refreshStatus(q, sub.id);
@@ -198,7 +198,7 @@ export async function submitForReview(q: Q, id: number, actor: DemoUser) {
   if (await hasUncheckedChanges(q, sub)) throw new Error("You have changes that haven't been checked. Run the check first.");
   const fs = await findingsFor(q, id, sub.current_version);
   const open = fs.filter((f) => f.status === "open" && (f.severity === "blocker" || f.severity === "major"));
-  if (open.length) throw new Error(`${open.length} blocker/major issue(s) still open. Fix them, or dismiss with a reason.`);
+  if (open.length) throw new Error(`${open.length} must-fix or should-fix issue(s) still open. Fix them, or dismiss with a reason.`);
   await q("UPDATE submissions SET status = 'in_review', updated_at = now() WHERE id = $1", [id]);
   await audit(q, actor.id, "submitted", id, { version: sub.current_version, route: requiredApprovers(sub) });
 }
@@ -216,7 +216,7 @@ export async function reviewDecision(q: Q, id: number, actor: DemoUser, decision
   if (!needed.includes(actsAs as "manager" | "compliance")) throw new Error(actor.role === "compliance" ? "Compliance only reviews content with claims. This one only needs the brand manager." : "Your role can't approve content.");
   const fs = await findingsFor(q, id, sub.current_version);
   const exceptions = fs.filter((f) => f.status === "exception_requested");
-  if (decision === "approved" && exceptions.length) throw new Error(`There ${exceptions.length === 1 ? "is 1 blocker" : `are ${exceptions.length} blockers`} with an exception request. Use "Approve with exception" and write why.`);
+  if (decision === "approved" && exceptions.length) throw new Error(`There ${exceptions.length === 1 ? "is 1 must-fix issue" : `are ${exceptions.length} must-fix issues`} with an exception request. Use "Approve with exception" and write why.`);
   if ((decision === "exception" || decision === "changes_requested") && !note.trim()) throw new Error("Please write a short note explaining your decision.");
   await q("INSERT INTO approvals (submission_id, version_n, approver_id, role, decision, note) VALUES ($1,$2,$3,$4,$5,$6)", [id, sub.current_version, actor.id, actsAs, decision, note || null]);
   await audit(q, actor.id, `review.${decision}`, id, { version: sub.current_version, note });

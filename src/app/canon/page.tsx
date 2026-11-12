@@ -26,7 +26,7 @@ export default async function CanonPage({ searchParams }: { searchParams: Promis
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Brand Canon <span className="ml-1 rounded-md bg-brand-50 px-2 py-0.5 align-middle text-sm font-semibold text-brand-700">v{canon.version}</span></h1>
+          <h1 className="text-[22px] font-semibold tracking-tight">Brand rules <span className="ml-1 rounded-md bg-brand-50 px-2 py-0.5 align-middle text-sm font-semibold text-brand-700">v{canon.version}</span></h1>
           <p className="text-sm text-gray-500">Aranya Naturals&apos; approved rules, facts, words and colours. Every finding in Verity points to one of these IDs. {canon.rules.length} rules · {canon.facts.length} facts · {canon.terms.length} term rules.</p>
         </div>
         {!isAdmin && <p className="rounded-lg bg-gray-100 px-3 py-2 text-xs text-gray-600">Read-only. Switch to <b>Satwik (Brand admin)</b> to edit.</p>}

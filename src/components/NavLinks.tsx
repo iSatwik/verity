@@ -8,20 +8,19 @@ export function NavLinks({ role }: { role: Role }) {
   const path = usePathname();
   const items = [
     { href: "/submissions", label: "Submissions" },
-    { href: "/review", label: "Review queue" },
-    { href: "/canon", label: "Brand Canon" },
+    { href: "/review", label: "Review" },
+    { href: "/canon", label: "Brand rules" },
     { href: "/insights", label: "Insights" },
     { href: "/audit", label: "Audit log" },
   ];
+  void role;
   return (
-    <nav className="flex items-center gap-1 overflow-x-auto text-sm">
+    <nav className="flex items-center gap-5 overflow-x-auto text-[14px]">
       {items.map((it) => {
         const on = path === it.href || path.startsWith(it.href + "/");
-        const hint = (role === "creator" && it.href === "/submissions") || ((role === "manager" || role === "compliance") && it.href === "/review") || (role === "admin" && it.href === "/canon");
         return (
-          <Link key={it.href} href={it.href} className={`whitespace-nowrap rounded-md px-3 py-1.5 ${on ? "bg-brand-50 font-semibold text-brand-700" : "text-gray-600 hover:bg-gray-100"}`}>
+          <Link key={it.href} href={it.href} className={`whitespace-nowrap py-4 ${on ? "border-b-2 border-gray-900 font-medium text-gray-900" : "border-b-2 border-transparent text-gray-500 hover:text-gray-900"}`}>
             {it.label}
-            {hint && !on && <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-brand-500 align-middle" aria-label="suggested for your role" />}
           </Link>
         );
       })}

@@ -13,7 +13,7 @@ const clickText = async (text, sel = "button,label,a") => {
   if (!ok) throw new Error("not found: " + text); await idle();
 };
 const body = () => page.evaluate(() => document.body.innerText);
-const role = async (name) => { await page.goto(BASE, { waitUntil: "networkidle0" }); await clickText(`Continue as ${name}`, "button"); };
+const role = async (name) => { await page.goto(BASE, { waitUntil: "networkidle0" }); await clickText(name, "main button"); };
 
 // A. New submission from a Word document
 await role("Rahul");
@@ -32,14 +32,14 @@ async function decideAll() {
   const fids = await page.$$eval("[id^=f-]", (els) => els.map((e) => e.id));
   for (const id of fids) {
     const info = await page.$eval(`#${id}`, (e) => ({ sev: e.querySelector("span")?.textContent, btns: [...e.querySelectorAll("button")].map((b) => b.textContent.trim()) }));
-    if (info.btns.includes("Accept fix")) { await page.$eval(`#${id}`, (e) => [...e.querySelectorAll("button")].find((b) => b.textContent.trim() === "Accept fix").click()); await idle(); continue; }
-    const btn = info.sev === "blocker" ? "Request exception…" : "Dismiss…";
+    if (info.btns.includes("Accept")) { await page.$eval(`#${id}`, (e) => [...e.querySelectorAll("button")].find((b) => b.textContent.trim() === "Accept").click()); await idle(); continue; }
+    const btn = info.btns.includes("Ask for an exception") ? "Ask for an exception" : "Dismiss";
     if (!info.btns.includes(btn)) continue;
     await page.$eval(`#${id}`, (e, btn) => [...e.querySelectorAll("button")].find((x) => x.textContent.trim() === btn).click(), btn);
     await wait(200);
     await page.$eval(`#${id} select`, (s) => { const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set; set.call(s, "Approved exception"); s.dispatchEvent(new Event("change", { bubbles: true })); });
     await page.type(`#${id} input`, "Legal confirmed with the supplier on call, proof coming");
-    await page.$eval(`#${id}`, (e) => [...e.querySelectorAll("button")].find((b) => /^(Request exception|Dismiss)$/.test(b.textContent.trim())).click());
+    await page.$eval(`#${id}`, (e) => [...e.querySelectorAll("button")].find((b) => /^(Send exception request|Dismiss)$/.test(b.textContent.trim())).click());
     await idle();
   }
 }
@@ -47,7 +47,7 @@ for (let round = 0; round < 4; round++) {
   await page.goto(docUrl, { waitUntil: "networkidle0" });
   await decideAll();
   await page.goto(docUrl, { waitUntil: "networkidle0" });
-  await clickText("Run check again", "button"); await wait(800);
+  await clickText("Run check", "button").catch(() => clickText("Check again", "button")); await wait(800);
   await page.goto(docUrl, { waitUntil: "networkidle0" });
   t = await body();
   if (/Ready to submit/.test(t)) break;
@@ -58,10 +58,10 @@ await clickText("Submit for review", "button").catch((e) => console.log("submit:
 // C. Ritika requests changes
 await role("Ritika");
 await page.goto(docUrl, { waitUntil: "networkidle0" });
-t = await body(); console.log("ritika sees exceptions:", /exception request/.test(t));
+t = await body(); console.log("ritika sees exceptions:", /exception request/i.test(t));
 await page.type("textarea[placeholder^='Note for the creator']", "Please remove the recyclable claim until Ops attaches proof.");
 await clickText("Request changes", "button");
-await page.goto(docUrl, { waitUntil: "networkidle0" }); t = await body(); console.log("status:", t.match(/(Changes requested)/)?.[0]);
+await page.goto(docUrl, { waitUntil: "networkidle0" }); t = await body(); console.log("status:", t.match(/(asked for changes)/)?.[0]);
 
 // D. Admin edits the Canon: add a fact
 await role("Satwik");
@@ -74,7 +74,7 @@ await (await last.$("textarea[name=statement]")).type("Packaging is 100% recycla
 await (await last.$("input[name=keywords]")).type("recyclable");
 await (await last.$("input[name=source]")).type("Recycling certificate RC-2026-11");
 await last.$eval("button", (b) => b.click()); await idle();
-t = await body(); console.log("canon:", t.match(/Brand Canon\s*v\d+/)?.[0], /F-30/.test(t));
+t = await body(); console.log("canon:", t.match(/Brand rules\s*v\d+/)?.[0], /F-30/.test(t));
 await shot("32-canon-admin");
 await browser.close();
 console.log(errors.length ? errors.join("\n") : "no browser errors");

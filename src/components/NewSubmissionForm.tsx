@@ -129,7 +129,7 @@ export function NewSubmissionForm({ samples }: { samples: Sample[] }) {
       <div className="flex items-center gap-3">
         <button disabled={pending} className="inline-flex h-11 items-center gap-2 rounded-lg bg-brand-500 px-5 font-semibold text-white hover:bg-brand-600 disabled:opacity-60">
           {pending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
-          {pending ? "Checking against the Brand Canon…" : "Run brand check"}
+          {pending ? "Checking against the brand rules…" : "Run brand check"}
         </button>
         <span className="text-xs text-gray-500">Nothing is published. Your content is only checked and saved as a draft.</span>
       </div>

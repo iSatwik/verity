@@ -14,12 +14,12 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const idle = async () => { await wait(400); await page.waitForNetworkIdle({ idleTime: 400, timeout: 20000 }).catch(() => {}); };
 
 await page.goto(BASE, { waitUntil: "networkidle0" }); await shot("01-home");
-await clickText("Continue as Rahul"); await page.waitForNavigation({ waitUntil: "networkidle0" }); await shot("02-submissions");
+await clickText("Rahul", "main button"); await page.waitForNavigation({ waitUntil: "networkidle0" }); await shot("02-submissions");
 const demoHref = await page.evaluate(() => [...document.querySelectorAll("a")].find((a) => a.textContent.includes("Neem cleanser launch post")).getAttribute("href"));
 await page.goto(BASE + demoHref, { waitUntil: "networkidle0" }); await shot("03-demo-post");
 await clickText("Accept all"); await idle(); await shot("04-after-accept-all");
 await clickText("Use this alt text").catch(() => console.log("no alt button")); await idle();
-await clickText("Run check again"); await idle(); await wait(500); await shot("05-rechecked");
+await clickText("Run check").catch(() => clickText("Check again")); await idle(); await wait(500); await shot("05-rechecked");
 // handle remaining open issues
 const remaining = await page.evaluate(() => document.body.innerText.match(/(\d+) blocker\/major issue/)?.[1]);
 console.log("remaining blocker/major:", remaining);

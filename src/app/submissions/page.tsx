@@ -2,7 +2,7 @@ import Link from "next/link";
 import { q } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { getUser } from "@/lib/users";
-import { Card, ChannelTag, StatusPill, Avatar, timeAgo } from "@/components/ui";
+import { Card, ChannelTag, StatusPill, Avatar, timeAgo, IssueCounts } from "@/components/ui";
 
 interface Row { id: number; title: string; channel: string; author_id: string; status: string; risk_tier: string; current_version: number; updated_at: string; blockers: number; majors: number; others: number; has_image: boolean }
 
@@ -19,14 +19,14 @@ export default async function Submissions() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Submissions</h1>
+          <h1 className="text-[22px] font-semibold tracking-tight">Submissions</h1>
           <p className="text-sm text-gray-500">Everything going out for Aranya Naturals: posts, ads, emails and documents. {me.role === "creator" ? "Start a new one, or open one to fix its issues." : "Open any submission to see its checks and history."}</p>
         </div>
-        <Link href="/submissions/new" className="inline-flex h-10 items-center rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600">+ New submission</Link>
+        <Link href="/submissions/new" className="inline-flex h-9 items-center rounded-md bg-brand-500 px-4 text-sm font-medium text-white hover:bg-brand-600">New submission</Link>
       </div>
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left text-[11px] uppercase tracking-wider text-gray-500">
+          <thead className="border-b border-gray-200 text-left text-[12px] font-medium text-gray-500">
             <tr><th className="px-4 py-3">Title</th><th className="px-4 py-3">Channel</th><th className="px-4 py-3">Open issues</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Approval route</th><th className="px-4 py-3">Author</th><th className="px-4 py-3">Updated</th></tr>
           </thead>
           <tbody>
@@ -37,14 +37,7 @@ export default async function Submissions() {
                   <td className="px-4 py-3"><Link href={`/submissions/${r.id}`} className="font-medium text-gray-900 hover:underline">{r.title}</Link><span className="ml-2 text-xs text-gray-400">#{r.id} · v{r.current_version}{r.has_image ? " · 🖼 image" : ""}</span></td>
                   <td className="px-4 py-3"><ChannelTag channel={r.channel} /></td>
                   <td className="px-4 py-3">
-                    {r.status === "approved" ? <span className="text-xs text-gray-400">—</span> : (
-                      <span className="flex gap-1.5 text-xs">
-                        {r.blockers > 0 && <span className="rounded-full bg-red-50 px-2 py-0.5 font-semibold text-red-700">{r.blockers} blocker{r.blockers > 1 ? "s" : ""}</span>}
-                        {r.majors > 0 && <span className="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-800">{r.majors} major</span>}
-                        {r.others > 0 && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{r.others} minor</span>}
-                        {r.blockers + r.majors + r.others === 0 && <span className="text-brand-700">✓ none</span>}
-                      </span>
-                    )}
+                    {r.status === "approved" ? <span className="text-gray-400">—</span> : <IssueCounts b={r.blockers} m={r.majors} o={r.others} />}
                   </td>
                   <td className="px-4 py-3"><StatusPill status={r.status} /></td>
                   <td className="px-4 py-3 text-xs text-gray-600">{r.risk_tier === "claims" ? "Manager + Compliance" : "Manager"}</td>
