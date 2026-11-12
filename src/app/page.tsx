@@ -1,69 +1,68 @@
-import Image from "next/image";
+import Link from "next/link";
+import { USERS } from "@/lib/users";
+import { currentUser, hasChosenRole } from "@/lib/session";
+import { q } from "@/lib/db";
+import { RoleCards } from "@/components/RoleCards";
+import { Card } from "@/components/ui";
 
-export default function Home() {
+export default async function Home() {
+  const me = await currentUser();
+  const chosen = await hasChosenRole();
+  const demo = await q<{ id: number; title: string }>("SELECT id, title FROM submissions WHERE title = 'Neem cleanser launch post' ORDER BY id LIMIT 1");
+  const demoId = demo[0]?.id;
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="space-y-8">
+      <section className="grid gap-8 rounded-2xl bg-ink px-8 py-10 text-white md:grid-cols-[1.4fr_1fr]">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-300">Brand checks before you publish</p>
+          <h1 className="mt-3 text-4xl font-bold leading-tight tracking-tight">Catch it, explain it, fix it, approve it, <span className="text-emerald-300">before it goes live.</span></h1>
+          <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-gray-300">
+            Paste a post, upload a document or add an image. Verity checks it against the brand&apos;s approved rules, facts, terminology and colours.
+            Every issue shows the exact rule it breaks and a suggested fix, and a person makes the final approval.
+          </p>
+          <p className="mt-3 max-w-xl text-sm text-gray-400">
+            This demo uses <b className="text-gray-200">Aranya Naturals</b>, a fictional skincare brand. There&apos;s no sign-in: pick a role below and click around.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <Card className="border-white/10 bg-white/5 p-5 text-sm text-gray-200">
+          <p className="mb-3 font-semibold text-white">Try the full flow in 2 minutes</p>
+          <ol className="list-decimal space-y-2 pl-5 text-gray-300">
+            <li>Be <b className="text-white">Rahul (creator)</b>. Open <i>Neem cleanser launch post</i> and see each issue with its rule.</li>
+            <li>Click <b className="text-white">Accept all fixes</b>, add the alt text, then <b className="text-white">Run check again</b>.</li>
+            <li><b className="text-white">Submit for review</b>. Posts with claims go to the brand manager <i>and</i> compliance.</li>
+            <li>Switch to <b className="text-white">Ritika</b>, then <b className="text-white">Arjun</b>, and approve. The version gets locked with a review record.</li>
+            <li>Or start from scratch: <b className="text-white">New submission → load a sample</b>.</li>
+          </ol>
+          {demoId && (
+            <Link href={`/submissions/${demoId}`} className="mt-4 inline-flex h-9 items-center rounded-lg bg-emerald-400 px-4 font-semibold text-ink hover:bg-emerald-300">
+              Open the demo post →
+            </Link>
+          )}
+        </Card>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Choose who you are</h2>
+            <p className="text-sm text-gray-500">{chosen ? <>You are currently <b>{me.name}</b> ({me.roleLabel}). You can switch any time from the top right.</> : "You can switch any time from the top right."}</p>
+          </div>
         </div>
-      </main>
+        <RoleCards users={USERS} currentId={chosen ? me.id : null} />
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        {[
+          ["No source, no block", "A finding can only block a post if it cites a real rule or approved fact. AI suggestions that can't be verified show up as grey advisory notes and never block."],
+          ["Code first, AI second", "Banned words, product names, prices, dates, colours, contrast and alt text are checked by plain code. AI is only used for tone and wording, and only after private data is masked."],
+          ["Humans decide", "Nothing is changed automatically. Creators accept or dismiss each fix with a reason; risky posts also go to compliance; every decision is in the audit log."],
+        ].map(([t, d]) => (
+          <Card key={t} className="p-5">
+            <p className="font-semibold">{t}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-gray-600">{d}</p>
+          </Card>
+        ))}
+      </section>
     </div>
   );
 }
