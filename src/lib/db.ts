@@ -22,11 +22,17 @@ async function createDriver(): Promise<Driver> {
   const url = process.env.DATABASE_URL;
   if (url) {
     const postgres = (await import("postgres")).default;
-    const sql = postgres(url, { prepare: false, max: 5, idle_timeout: 20, connect_timeout: 15 });
+    // Supabase's transaction pooler can drop answers to queries pipelined on one connection,
+    // so each server instance sends one query at a time (a simple promise queue).
+    const sql = postgres(url, { prepare: false, max: 1, idle_timeout: 20, connect_timeout: 15 });
+    let chain: Promise<unknown> = Promise.resolve();
     return {
-      async query<T>(text: string, params: unknown[] = []) {
-        const res = await sql.unsafe(text, params as never[]);
-        return res as unknown as T[];
+      query<T>(text: string, params: unknown[] = []) {
+        // postgres.js would JSON-encode a string bound to a jsonb parameter a second time; send it as text and let Postgres parse it.
+        const sqlText = text.replace(/(\$\d+)::jsonb/g, "$1::text::jsonb");
+        const run = chain.then(() => sql.unsafe(sqlText, params as never[]));
+        chain = run.catch(() => undefined);
+        return run as unknown as Promise<T[]>;
       },
     };
   }
