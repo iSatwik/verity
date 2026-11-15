@@ -203,7 +203,7 @@ export function Workspace({ data }: { data: WorkspaceData }) {
             )}
             {check?.intent && !editing && (
               <p className="mt-4 border-t border-gray-100 pt-3 text-[13px] text-gray-500">
-                <span className="text-gray-700">What this is trying to do:</span> {check.intent.goal.toLowerCase()}{check.intent.audience ? ` for ${check.intent.audience.charAt(0).toLowerCase() + check.intent.audience.slice(1)}` : ""}{check.intent.cta && check.intent.cta !== "None" ? `. Call to action: “${check.intent.cta}”` : ""}. Suggested fixes keep this.
+                <span className="text-gray-700">What this is trying to do:</span> {lowerFirst(trimDot(check.intent.goal))}{check.intent.audience ? ` for ${lowerFirst(trimDot(check.intent.audience))}` : ""}{check.intent.cta && check.intent.cta !== "None" ? `. Call to action: “${check.intent.cta}”` : ""}. Suggested fixes keep this.
               </p>
             )}
           </Section>
@@ -535,3 +535,7 @@ function AiUse({ data }: { data: WorkspaceData }) {
     </div>
   );
 }
+
+/** "Promote X." -> "promote X" (keeps brand names capitalised, drops the trailing full stop). */
+function trimDot(t: string) { return t.trim().replace(/[.\s]+$/, ""); }
+function lowerFirst(t: string) { return /^[A-Z][a-z]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t; }
