@@ -41,10 +41,10 @@ async function geminiJSON(parts: unknown[], log: (l: AiLog) => void, purpose: st
     } catch (e) {
       lastErr = (e as Error).message;
       log({ purpose, model, redacted_input: redactedInput.slice(0, 4000), ok: false, latency_ms: Date.now() - t0, error: lastErr.slice(0, 300) });
-      return null;
+      continue; // try the next model (e.g. one model rate-limited)
     }
   }
-  log({ purpose, model: MODELS.join(","), redacted_input: redactedInput.slice(0, 4000), ok: false, latency_ms: 0, error: lastErr });
+  if (lastErr.includes("not found")) log({ purpose, model: MODELS.join(","), redacted_input: redactedInput.slice(0, 4000), ok: false, latency_ms: 0, error: lastErr });
   return null;
 }
 
@@ -144,7 +144,7 @@ export async function aiReview(opts: {
     const r = await geminiJSON([{ text: prompt }], opts.log, "review", opts.maskedText);
     if (r) { raw = r.data as RawReview; model = r.model; }
   }
-  if (!raw) return { findings: [], model: null };
+  if (!raw) throw new Error("the AI service did not answer, so only the code checks ran this time");
   const findings = (raw.issues ?? []).slice(0, 8).map((i) => verifyIssue(i, opts.canon, opts.originalText, opts.map));
   // drop AI findings that overlap code findings
   const fresh = findings.filter((f) => !opts.already.some((a) => a.quote && f.quote && (a.quote.includes(f.quote) || f.quote.includes(a.quote))));
