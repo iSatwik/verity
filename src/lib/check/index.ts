@@ -44,7 +44,7 @@ export async function runPipeline(canon: Canon, input: CheckInput, log: (l: AiLo
   // 3. AI review on masked text
   const red = redact(text, canon);
   if (red.count) notes.push(`${red.count} item(s) masked before the AI check.`);
-  const ai = !useAi ? { findings: [] as Finding[], model: null as string | null, intent: undefined } : await aiReview({ maskedText: red.masked, originalText: text, map: red.map, channel: input.channel, canon, already: findings, log }).catch((e) => {
+  const ai = !useAi ? { findings: [] as Finding[], model: null as string | null, intent: undefined } : await aiReview({ maskedText: red.masked, originalText: text, map: red.map, channel: input.channel, canon, already: findings.filter((f) => f.location !== "image"), log }).catch((e) => {
     notes.push(`AI check failed: ${(e as Error).message}`);
     return { findings: [] as Finding[], model: null as string | null, intent: undefined };
   });

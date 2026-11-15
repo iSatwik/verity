@@ -59,13 +59,15 @@ export interface RawIssue {
 }
 export interface RawReview { intent?: Partial<Intent>; issues?: RawIssue[] }
 
-export function buildPrompt(maskedText: string, channel: string, canon: Canon, already: Finding[]): string {
+export function buildPrompt(maskedText: string, channel: string, canon: Canon, already: Finding[], map: Record<string, string> = {}): string {
+  // Quotes of known issues come from the original text, so mask them the same way (and never send confidential-term findings).
+  const maskQuote = (q: string) => Object.entries(map).reduce((acc, [k, v]) => acc.split(v).join(k), q);
   const rules = canon.rules
     .filter((r) => ["voice", "messaging", "claims", "imported"].includes(r.category))
     .map((r) => `${r.id}: ${r.body}${r.do_example ? ` | Do: ${r.do_example}` : ""}${r.dont_example ? ` | Don't: ${r.dont_example}` : ""}`)
     .join("\n");
   const facts = canon.facts.filter((f) => f.status === "active").map((f) => `${f.id}: ${f.statement}`).join("\n");
-  const known = already.map((f) => `- "${f.quote ?? ""}" (${f.title})`).join("\n") || "- none";
+  const known = already.filter((f) => f.category !== "confidential").map((f) => `- "${maskQuote(f.quote ?? "")}" (${f.title})`).join("\n") || "- none";
   return `You are a brand-compliance reviewer for the brand "Aranya Naturals".
 Check the CONTENT below against the brand RULES and APPROVED FACTS.
 Only report problems about tone/voice, messaging, or claims that are NOT already in KNOWN ISSUES.
@@ -133,7 +135,7 @@ export async function aiReview(opts: {
 }): Promise<{ intent?: Intent; findings: Finding[]; model: string | null }> {
   const provider = aiProvider();
   if (provider === "none" || !opts.maskedText.trim()) return { findings: [], model: null };
-  const prompt = buildPrompt(opts.maskedText, opts.channel, opts.canon, opts.already);
+  const prompt = buildPrompt(opts.maskedText, opts.channel, opts.canon, opts.already, opts.map);
   let raw: RawReview | null = null;
   let model: string | null = null;
   if (provider === "mock") {

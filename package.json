@@ -8,8 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "eval": "tsx scripts/eval.ts && tsx scripts/eval-heldout.ts",
+    "eval:confidential": "tsx scripts/eval-confidential.ts",
     "samples": "tsx scripts/try-samples.ts",
-    "e2e": "node scripts/e2e/full-flow.mjs"
+    "e2e": "node scripts/e2e/full-flow.mjs",
+    "eval:images": "tsx scripts/eval-images.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
