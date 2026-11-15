@@ -6,18 +6,19 @@ Verity checks content **before it is published** (an Instagram post, an ad, an e
 
 > The demo uses **Aranya Naturals**, a *fictional* skincare brand. Its products, prices, studies and people are made up.
 
-- **Live demo:** _add your Vercel link here_
+- **Live demo:** https://verity-swart-ten.vercel.app
+- **Source:** https://github.com/iSatwik/verity
 - **No sign-in needed.** Pick a role on the home page (or top right) and try the whole flow.
 
 ---
 
 ## Try it in 2 minutes (for judges)
 
-1. Open the live link and choose **Rahul (Content creator)**.
-2. Open **Neem cleanser launch post**. It has 14 issues in the caption and the image, each linked to its rule (`C-1.2`, `F-12`, `T-02`…).
-3. Click **Accept all suggested fixes**, then **Edit content → "Use the designer's on-brand version (demo)" → Save**, then **Run check again**.
+1. Open the live link and choose **Rahul K. (Content creator)**.
+2. Open **Neem cleanser launch post**. Every underlined part is an issue, grouped as **Must fix / Should fix / Nice to fix**, each linked to its rule (`C-1.2`, `F-12`, `T-02`…).
+3. Click **Accept all … suggestions**, then **Edit → Use the designer's corrected image (demo) → Save**, then **Check again**.
 4. **Submit for review.** The post has claims, so it goes to the brand manager **and** compliance.
-5. Switch role (top right) to **Arjun (Compliance)** → **Approve**, then **Ritika (Brand manager)** → **Approve**. The version is locked with a SHA-256 review record.
+5. Switch person (top right) to **Arjun V. (Compliance)** → **Approve**, then **Ritika S. (Brand manager)** → **Approve**. The version is locked with a SHA-256 review record.
 6. Try your own content: **Submissions → New submission → load a sample**, or paste/upload anything.
 
 ## Features completed in Round 2

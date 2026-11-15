@@ -426,7 +426,7 @@ function ApprovalPanel({ data, exceptions, isCreatorSide }: { data: WorkspaceDat
 
       {rec && sub.status === "approved" && (
         <div className="mt-4 space-y-1 border-t border-gray-100 pt-4 text-[12px] text-gray-500">
-          <p>Locked version {rec.version} · Brand rules v{rec.canon_version} · <span suppressHydrationWarning>{new Date(rec.approved_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span></p>
+          <p>Locked version {rec.version} · Brand rules v{rec.canon_version} · <span suppressHydrationWarning>{new Date(rec.approved_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" })} IST</span></p>
           <p className="break-all font-mono text-[11px] text-gray-400">sha256 {rec.hash}</p>
           <div className="flex gap-2 pt-2">
             <button onClick={() => navigator.clipboard?.writeText(sub.draft_text).catch(() => {})} className="h-7 rounded-md border border-gray-300 px-2.5 text-xs text-gray-700 hover:bg-gray-50">Copy approved text</button>
