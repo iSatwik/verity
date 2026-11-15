@@ -44,7 +44,6 @@ Verity checks content **before it is published** (an Instagram post, an ad, an e
 |---|---|---|---|
 | Labelled set: 13 posts, 37 expected issues | 100% (37/37) | 100% (37/37) | Written together with the rules, so this score is optimistic. |
 | Held-out set: 5 posts written after the rules were finished | 89% (8/9) | 100% (8/8) | The miss ("blocks 100% of UV rays") is a claim type with no code pattern. That's what the AI layer is for. Running this set also found one real bug ("part**ship**" matched "shipping"), which is now fixed. |
-
 | Image checker (`npm run eval:images`): 20 generated ads with planted colour and contrast errors, plus clean ones | 90% (19/21 planted errors caught) | 2 false alarms in 19 clean checks | Misses: a red background read as a shade of the brand saffron, and orange-on-orange. False alarms come from the contrast *estimate*. |
 | Confidential mode (`npm run eval:confidential`): 17 posts with canary confidential words, emails, phone, PAN, Aadhaar-like and card numbers | 0 canary leaks in the exact AI prompt | 18 values masked | This test found a real leak (quotes of already-found issues were sent unmasked); fixed. |
 
