@@ -107,10 +107,10 @@ export async function reopenFindingAction(fid: number, subId: number): Promise<A
   const actor = await currentUser();
   return wrap(() => store.reopenFinding(q, fid, actor), [`/submissions/${subId}`]);
 }
-export async function saveDraftAction(subId: number, text: string, imageAlt: string | null, imageText: string | null, imageData?: string | null): Promise<ActionResult> {
+export async function saveDraftAction(subId: number, text: string, imageAlt: string | null, imageText: string | null, imageData?: string | null, base?: store.DraftBase): Promise<ActionResult> {
   const actor = await currentUser();
   if (imageData && imageData.length > 6_000_000) return { ok: false, error: "Image is too large. Please use one under 4 MB." };
-  return wrap(() => store.updateDraft(q, subId, actor, { text, imageAlt, imageText, imageData }), [`/submissions/${subId}`]);
+  return wrap(() => store.updateDraft(q, subId, actor, { text, imageAlt, imageText, imageData, base }), [`/submissions/${subId}`]);
 }
 export async function submitAction(subId: number): Promise<ActionResult> {
   const actor = await currentUser();

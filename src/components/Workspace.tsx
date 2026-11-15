@@ -115,7 +115,8 @@ export function Workspace({ data }: { data: WorkspaceData }) {
   const fixable = open.filter((f) => f.suggestion !== null && f.method !== "ai_unverified" && f.category !== "visual");
   const segments = useMemo(() => highlightSegments(sub.draft_text, findings), [sub.draft_text, findings]);
 
-  const startEdit = () => { setDraft(sub.draft_text); setAlt(sub.image_alt ?? ""); setImgText(sub.image_text ?? ""); setNewImage(undefined); setEditing(true); };
+  const [base, setBase] = useState({ text: sub.draft_text, imageAlt: sub.image_alt ?? "", imageText: sub.image_text ?? "" });
+  const startEdit = () => { setDraft(sub.draft_text); setAlt(sub.image_alt ?? ""); setImgText(sub.image_text ?? ""); setNewImage(undefined); setBase({ text: sub.draft_text, imageAlt: sub.image_alt ?? "", imageText: sub.image_text ?? "" }); setEditing(true); };
   const stepIdx = sub.status === "approved" ? 4 : sub.status === "in_review" ? 3 : sub.current_version === 0 ? 0 : required.length === 0 && !data.unchecked ? 2 : 1;
   const steps = ["Draft", "Checked", "Fixed", "In review", "Approved"];
   const checkedVersion = data.versions.find((v) => v.n === sub.current_version);
@@ -189,7 +190,7 @@ export function Workspace({ data }: { data: WorkspaceData }) {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <ActionButton variant="primary" action={() => saveDraftAction(sub.id, draft, alt, imgText, newImage)} onDone={(r) => { if (r.ok) { setEditing(false); setNewImage(undefined); } }}>Save</ActionButton>
+                  <ActionButton variant="primary" action={() => saveDraftAction(sub.id, draft, alt, imgText, newImage, base)} onDone={(r) => { if (r.ok) { setEditing(false); setNewImage(undefined); } }}>Save</ActionButton>
                   <button onClick={() => setEditing(false)} className="h-9 rounded-md px-3 text-sm text-gray-600 hover:bg-gray-100">Cancel</button>
                 </div>
               </div>

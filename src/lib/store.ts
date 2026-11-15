@@ -173,11 +173,25 @@ async function refreshStatus(q: Q, id: number) {
   await q("UPDATE submissions SET status = $2 WHERE id = $1", [id, sub.status === "changes_requested" && s === "needs_fixes" ? "changes_requested" : s]);
 }
 
-export async function updateDraft(q: Q, id: number, actor: DemoUser, input: { text: string; imageAlt?: string | null; imageText?: string | null; title?: string; imageData?: string | null }) {
+/** What the editor showed when it was opened. Used so a save never overwrites changes made meanwhile (e.g. accepted fixes). */
+export interface DraftBase { text: string; imageAlt: string; imageText: string }
+
+export async function updateDraft(q: Q, id: number, actor: DemoUser, input: { text: string; imageAlt?: string | null; imageText?: string | null; title?: string; imageData?: string | null; base?: DraftBase }) {
   const sub = (await getSubmission(q, id))!;
   assertEditable(sub, actor);
   const imageData = input.imageData === undefined ? sub.image_data : input.imageData || null;
-  await q("UPDATE submissions SET draft_text = $2, image_alt = $3, image_text = $4, title = COALESCE($5, title), image_data = $6, updated_at = now() WHERE id = $1", [id, input.text, input.imageAlt ?? sub.image_alt, input.imageText ?? sub.image_text, input.title ?? null, imageData]);
+  // Fields the person did not touch keep the current value. If they changed the caption and it also changed on the server, refuse (no silent overwrite).
+  const merge = (neu: string | null | undefined, cur: string | null, base: string | undefined, strict = false): string | null => {
+    if (neu === undefined || neu === null) return cur;
+    if (base === undefined) return neu;
+    if (neu === base) return cur;
+    if (strict && (cur ?? "") !== base) throw new Error("This post changed while you were editing (for example, fixes were accepted). Your edit was not saved. Close the editor, open Edit again and redo your change.");
+    return neu;
+  };
+  const text = merge(input.text, sub.draft_text, input.base?.text, true) ?? "";
+  const alt = merge(input.imageAlt, sub.image_alt, input.base?.imageAlt);
+  const imgText = merge(input.imageText, sub.image_text, input.base?.imageText);
+  await q("UPDATE submissions SET draft_text = $2, image_alt = $3, image_text = $4, title = COALESCE($5, title), image_data = $6, updated_at = now() WHERE id = $1", [id, text, alt, imgText, input.title ?? null, imageData]);
   await audit(q, actor.id, "draft.edited", id, { imageReplaced: input.imageData !== undefined && input.imageData !== sub.image_data });
 }
 
