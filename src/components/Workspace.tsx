@@ -11,7 +11,8 @@ import { DISMISS_REASONS, CHANNELS } from "@/lib/labels";
 import type { DemoUser } from "@/lib/users";
 import type { ImageReport, Intent } from "@/lib/check/types";
 import { ActionButton } from "./ActionButton";
-import { Avatar, TimeAgo, SEVERITY_LABEL } from "./ui";
+import { Avatar, TimeAgo, SEVERITY_LABEL, nb } from "./ui";
+import { ChannelFrame } from "./ChannelFrame";
 
 export interface WFinding {
   id: number; version_n: number; location: "text" | "image"; category: string; severity: string; title: string; message: string;
@@ -195,11 +196,13 @@ export function Workspace({ data }: { data: WorkspaceData }) {
                 </div>
               </div>
             ) : (
+              <ChannelFrame channel={sub.channel} title={sub.title}>
               <div className="whitespace-pre-wrap text-[16px] leading-[1.9] text-gray-900" onMouseUp={() => { const s = window.getSelection()?.toString().trim(); if (s && s.length > 2) { setQuote(s.slice(0, 200)); setTab("comments"); } }}>
                 {sub.draft_text ? segments.map((seg, i) => seg.f ? (
                   <mark key={i} id={`m-${seg.f.id}`} onClick={() => flash(`f-${seg.f!.id}`)} title={seg.f.title} className={`hl ${seg.f.status === "open" ? `hl-${seg.f.severity}` : "hl-done"}`}>{seg.text}</mark>
                 ) : <span key={i}>{seg.text}</span>) : <span className="text-gray-400">No text. Only the image is checked.</span>}
               </div>
+              </ChannelFrame>
             )}
             {check?.intent && !editing && (
               <p className="mt-4 border-t border-gray-100 pt-3 text-[13px] text-gray-500">
@@ -296,7 +299,7 @@ function IssueRow({ f, subId, editable }: { f: WFinding; subId: number; editable
         <button onClick={() => flash(`m-${f.id}`)} className={`text-left text-[14px] font-semibold ${decided ? "text-gray-500" : "text-gray-900"} hover:underline`}>{f.title}</button>
         <span className="shrink-0 text-[11px] text-gray-400">{f.location === "image" ? "in image" : ""}{f.method === "ai" ? `${f.location === "image" ? " · " : ""}AI, verified` : f.method === "ai_unverified" ? "AI, unverified" : ""}</span>
       </div>
-      {!decided && <p className="mt-1 text-[13px] leading-relaxed text-gray-600">{f.message}</p>}
+      {!decided && <p className="mt-1 text-[13px] leading-relaxed text-gray-600">{nb(f.message)}</p>}
       {f.quote && f.category !== "visual" && (
         <p className="mt-2 text-[13px] leading-relaxed">
           <span className={decided ? "text-gray-400 line-through" : "text-red-700 line-through decoration-red-300"}>{f.quote}</span>
@@ -308,9 +311,9 @@ function IssueRow({ f, subId, editable }: { f: WFinding; subId: number; editable
       )}
       {main && !decided && (
         <div className="mt-2 text-[12px] leading-snug text-gray-500">
-          <span className="font-mono font-semibold text-gray-700">{main.id}</span> {main.text}
+          <span className="whitespace-nowrap font-mono font-semibold text-gray-700">{main.id}</span> {nb(main.text)}
           {rest.length > 0 && !moreSources && <button onClick={() => setMoreSources(true)} className="ml-1 text-gray-400 underline underline-offset-2 hover:text-gray-700">+{rest.length} more</button>}
-          {moreSources && rest.map((s) => <div key={s.id} className="mt-1"><span className="font-mono font-semibold text-gray-700">{s.id}</span> {s.text}</div>)}
+          {moreSources && rest.map((s) => <div key={s.id} className="mt-1"><span className="whitespace-nowrap font-mono font-semibold text-gray-700">{s.id}</span> {nb(s.text)}</div>)}
         </div>
       )}
       {f.location === "image" && f.category !== "accessibility" && !decided && <p className="mt-1.5 text-[12px] text-gray-400">This is in the image itself. Fix the design, then use Edit → Replace image.</p>}

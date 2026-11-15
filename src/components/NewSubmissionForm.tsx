@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createAndCheck, extractFileText, type ActionResult } from "@/app/actions";
-import { CHANNELS } from "@/lib/labels";
+import { CHANNELS, CHANNEL_GUIDE } from "@/lib/labels";
 import { Card, Label } from "./ui";
 
 interface Sample { key: string; title: string; channel: string; text: string; image: string | null; imageText: string; hint: string }
@@ -52,7 +52,9 @@ export function NewSubmissionForm({ samples }: { samples: Sample[] }) {
     setFileMsg(`Read ${file.name}: ${(r.text ?? "").split(/\s+/).filter(Boolean).length} words.`);
   }
 
+  const guide = CHANNEL_GUIDE[channel];
   return (
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
     <form action={formAction} className="space-y-5">
       <Card className="p-5">
         <Label>Quick start: load a sample from the fictional brand</Label>
@@ -134,5 +136,31 @@ export function NewSubmissionForm({ samples }: { samples: Sample[] }) {
         <span className="text-xs text-gray-500">Nothing is published. Your content is only checked and saved as a draft.</span>
       </div>
     </form>
+
+    <aside className="space-y-4 lg:sticky lg:top-20">
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <p className="text-[13px] font-semibold text-gray-900">How this works</p>
+        <ol className="mt-2 space-y-2 text-[13px] text-gray-600">
+          <li className="flex gap-2"><span className="text-gray-400">1</span><span><b className="font-medium text-gray-800">Title</b>: any name so you can find it later.</span></li>
+          <li className="flex gap-2"><span className="text-gray-400">2</span><span><b className="font-medium text-gray-800">Where it will be published</b>: this changes which rules apply (see below).</span></li>
+          <li className="flex gap-2"><span className="text-gray-400">3</span><span><b className="font-medium text-gray-800">Text</b>: paste it, or upload a Word, PDF or text file.</span></li>
+          <li className="flex gap-2"><span className="text-gray-400">4</span><span><b className="font-medium text-gray-800">Image</b> (optional): its colours, contrast, alt text and the words on it are checked too.</span></li>
+          <li className="flex gap-2"><span className="text-gray-400">5</span><span><b className="font-medium text-gray-800">Run brand check</b>: you get each issue with the rule it breaks and a suggested fix.</span></li>
+        </ol>
+        <p className="mt-3 text-[12px] text-gray-500">Not sure what to write? Load one of the samples above.</p>
+      </div>
+      {guide && (
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-[13px] font-semibold text-gray-900">{CHANNELS[channel]}</p>
+          <p className="mt-0.5 text-[13px] text-gray-500">{guide.what}</p>
+          <p className="mt-3 text-[12px] font-medium uppercase tracking-wide text-gray-400">Also checked for this channel</p>
+          <ul className="mt-1.5 space-y-1.5 text-[13px] text-gray-700">
+            {guide.checks.map((c) => <li key={c} className="flex gap-2"><span className="text-brand-600">✓</span><span>{c}</span></li>)}
+          </ul>
+          <p className="mt-3 text-[12px] text-gray-500"><span className="text-gray-400">Approved by:</span> {guide.approvers}</p>
+        </div>
+      )}
+    </aside>
+    </div>
   );
 }

@@ -67,3 +67,8 @@ export function IssueCounts({ b, m, o }: { b: number; m: number; o: number }) {
   if (o) parts.push(<span key="o" className="text-gray-500">{o} minor</span>);
   return <span className="text-[13px]">{parts.flatMap((p, i) => (i ? [<span key={`s${i}`} className="text-gray-300"> · </span>, p] : [p]))}</span>;
 }
+
+/** Keeps codes like F-07, C-1.2 or VI-4 on one line (non-breaking hyphen). */
+export function nb(text: string): string {
+  return text.replace(/\b([A-Z]{1,3})-(\d+(?:\.\d+)?)\b/g, "$1\u2011$2");
+}

@@ -7,7 +7,7 @@ export const maxDuration = 60;
 export default async function NewSubmission() {
   const me = await currentUser();
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">New submission</h1>
         <p className="text-sm text-gray-500">Paste a caption, email or ad, upload a Word/PDF document, and/or attach an image. Verity checks it against the Aranya Naturals brand rules in a few seconds.</p>
