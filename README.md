@@ -111,9 +111,9 @@ npm run samples      # print findings for every sample post
 
 ## Three improvements for Round 3
 
-1. **Precise image and accessibility checks.** OCR text boxes so contrast is measured per text region (not estimated), logo detection and misuse (stretched, recoloured, missing clear space), and a check for AI-generated image labels.
-2. **Guideline Health.** Score how clear each rule is from dismissal reasons, exception rates and reviewer disagreements. Draft a clearer rewrite with good/bad examples for the admin to approve into the next Canon version.
-3. **Confidential mode.** A private local-model option (Ollama) so text never leaves the company, stronger detection of personal and confidential data, and per-workspace data-retention settings, plus real accounts and row-level security.
+1. **Precise image and accessibility checks.** Find each block of text in an image and measure its contrast exactly; detect the logo and its misuse (wrong colours, stretched, too small, no clear space); handle real product photos. Target: ≥95% of planted errors caught, ≤1 false alarm in 40 test images.
+2. **Guideline Health that learns from reviewers.** A clarity score per rule from dismissals, exceptions and disagreements; drafted clearer rewrites with do/don't examples for the admin to approve; "False positive" dismissals remembered per brand so the same false alarm isn't raised again. Target: find the 3 planted vague rules; halve repeated false alarms.
+3. **Real accounts and private mode.** Sign-in with roles and Postgres row-level security; masking of private words inside images before the vision AI; an option to use the company's own OpenAI-compatible AI server (e.g. Ollama). Target: 0 canary leaks including images; tests for every role's access rules.
 
 ## Disclosure
 
