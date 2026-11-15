@@ -7,7 +7,7 @@ Verity checks content **before it is published** (an Instagram post, an ad, an e
 > The demo uses **Aranya Naturals**, a *fictional* skincare brand. Its products, prices, studies and people are made up.
 
 - **Live demo:** https://verity-swart-ten.vercel.app
-- **Source:** https://github.com/iSatwik/verity
+- **Source:** https://github.com/iSatwik/verity (Team Knox: Tadoori Satwik)
 - **No sign-in needed.** Pick a role on the home page (or top right) and try the whole flow.
 
 ---
