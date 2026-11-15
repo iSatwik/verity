@@ -1,4 +1,5 @@
 "use client";
+import { BrandLogo } from "./BrandLogo";
 
 import { useTransition } from "react";
 import Link from "next/link";
@@ -10,7 +11,7 @@ export function Landing({ users, currentId, demoId }: { users: DemoUser[]; curre
   return (
     <div className="mx-auto max-w-3xl space-y-10 py-4">
       <div>
-        <p className="text-[13px] text-gray-500">Aranya Naturals · demo workspace</p>
+        <p className="flex items-center gap-2 text-[13px] text-gray-500"><BrandLogo size={22} />Aranya Naturals · demo workspace</p>
         <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-gray-900">Brand review before publishing</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-gray-600">
           Verity checks posts, ads, emails, documents and images against the brand&apos;s approved rules, facts, words and colours.

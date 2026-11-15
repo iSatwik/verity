@@ -37,13 +37,13 @@ export default async function AuditPage() {
       </Card>
       <Card className="overflow-x-auto">
         <div className="border-b border-gray-100 px-4 py-3 text-sm font-semibold">AI calls ({ai.length})</div>
-        {ai.length === 0 && <p className="px-4 py-5 text-sm text-gray-500">No AI calls yet. Without a Gemini API key, Verity runs code checks only.</p>}
+        {ai.length === 0 && <p className="px-4 py-5 text-sm text-gray-500">No AI calls yet. Without an AI key, Verity runs code checks only.</p>}
         {ai.length > 0 && (
           <table className="w-full text-xs">
-            <thead className="text-left text-gray-500"><tr><th className="px-4 py-2">When</th><th>Submission</th><th>Purpose</th><th>Model</th><th>Result</th><th>Text sent (masked)</th></tr></thead>
+            <thead className="text-left text-gray-500"><tr><th className="px-4 py-2">When</th><th>Submission</th><th>Purpose</th><th>Done by</th><th>Result</th><th>Text sent (masked)</th></tr></thead>
             <tbody>{ai.map((a) => (
               <tr key={a.id} className="border-t border-gray-100 align-top">
-                <td className="px-4 py-2 text-gray-500">{timeAgo(a.created_at)}</td><td>{a.submission_id ? `#${a.submission_id}` : ""}</td><td>{a.purpose}</td><td className="font-mono">{a.model}</td>
+                <td className="px-4 py-2 text-gray-500">{timeAgo(a.created_at)}</td><td>{a.submission_id ? `#${a.submission_id}` : ""}</td><td>{a.purpose}</td><td>{a.model === "mock" ? "Test AI" : "AI model"}</td>
                 <td>{a.ok ? `ok · ${a.latency_ms} ms` : <span className="text-red-700">failed: {a.error}</span>}</td>
                 <td className="max-w-sm truncate text-gray-500" title={a.redacted_input ?? ""}>{a.redacted_input}</td>
               </tr>))}

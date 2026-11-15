@@ -113,7 +113,7 @@ export function Workspace({ data }: { data: WorkspaceData }) {
   const open = findings.filter((f) => f.status === "open");
   const required = open.filter((f) => f.severity === "blocker" || f.severity === "major");
   const exceptions = findings.filter((f) => f.status === "exception_requested");
-  const fixable = open.filter((f) => f.suggestion !== null && f.method !== "ai_unverified" && f.category !== "visual");
+  const fixable = open.filter((f) => f.suggestion !== null && f.method !== "ai_unverified" && f.category !== "visual" && !inDesign(f));
   const segments = useMemo(() => highlightSegments(sub.draft_text, findings), [sub.draft_text, findings]);
 
   const [base, setBase] = useState({ text: sub.draft_text, imageAlt: sub.image_alt ?? "", imageText: sub.image_text ?? "" });
@@ -246,7 +246,7 @@ export function Workspace({ data }: { data: WorkspaceData }) {
               return (
                 <div key={sev} className="border-b border-gray-100 last:border-b-0">
                   <p className={`px-5 pb-1 pt-4 text-[12px] font-semibold ${SEV_TEXT[sev]}`}>{SEVERITY_LABEL[sev]} · {list.length}</p>
-                  <div className="divide-y divide-gray-100">{list.map((f) => <IssueRow key={f.id} f={f} subId={sub.id} editable={editable} />)}</div>
+                  <div className="divide-y divide-gray-100">{list.map((f) => <IssueRow key={f.id} f={f} subId={sub.id} editable={editable} onReplaceImage={editable ? () => { startEdit(); window.scrollTo({ top: 0, behavior: "smooth" }); } : undefined} />)}</div>
                 </div>
               );
             })}
@@ -283,40 +283,56 @@ function NextStep({ data, required, exceptions, isCreatorSide }: { data: Workspa
   return <div className={`rounded-lg px-4 py-3 text-[14px] ${sub.status === "approved" ? "bg-brand-50 text-brand-700" : "bg-gray-100 text-gray-800"}`}>{msg}</div>;
 }
 
-function IssueRow({ f, subId, editable }: { f: WFinding; subId: number; editable: boolean }) {
+/** A problem that lives in the picture itself: only a new design fixes it (alt text is metadata, so it is not). */
+function inDesign(f: { location?: string | null; title: string }) { return f.location === "image" && f.title !== "Missing alt text"; }
+
+function IssueRow({ f, subId, editable, onReplaceImage }: { f: WFinding; subId: number; editable: boolean; onReplaceImage?: () => void }) {
   const [mode, setMode] = useState<"none" | "edit" | "dismiss">("none");
   const [edited, setEdited] = useState(f.suggestion ?? "");
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
   const [moreSources, setMoreSources] = useState(false);
   const decided = f.status !== "open";
-  const canApply = f.suggestion !== null && f.category !== "visual" && f.method !== "ai_unverified";
+  const canApply = f.suggestion !== null && f.category !== "visual" && f.method !== "ai_unverified" && !inDesign(f);
   const statusLabel: Record<string, string> = { accepted: "Fixed", dismissed: "Dismissed", exception_requested: "Exception requested", resolved: "Fixed by another change" };
   const [main, ...rest] = f.sources;
   return (
     <div id={`f-${f.id}`} className={`border-l-[3px] px-5 py-4 ${decided ? "border-l-transparent" : SEV_BAR[f.severity]}`}>
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <button onClick={() => flash(`m-${f.id}`)} className={`text-left text-[14px] font-semibold ${decided ? "text-gray-500" : "text-gray-900"} hover:underline`}>{f.title}</button>
-        <span className="shrink-0 text-[11px] text-gray-400">{f.location === "image" ? "in image" : ""}{f.method === "ai" ? `${f.location === "image" ? " · " : ""}AI, verified` : f.method === "ai_unverified" ? "AI, unverified" : ""}</span>
+        {f.location === "image" && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">In image</span>}
+        {f.method === "ai" && <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium text-sky-800">AI · rule checked</span>}
+        {f.method === "ai_unverified" && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-500">AI · not verified, can&apos;t block</span>}
       </div>
-      {!decided && <p className="mt-1 text-[13px] leading-relaxed text-gray-600">{nb(f.message)}</p>}
+      {!decided && <p className="mt-1.5 text-[13px] leading-relaxed text-gray-600">{nb(f.message)}</p>}
       {f.quote && f.category !== "visual" && (
-        <p className="mt-2 text-[13px] leading-relaxed">
-          <span className={decided ? "text-gray-400 line-through" : "text-red-700 line-through decoration-red-300"}>{f.quote}</span>
-          {f.suggestion !== null && <> <span className="text-gray-400">→</span> <span className={decided ? "text-gray-500" : "font-medium text-brand-700"}>{f.suggestion === "" ? "(remove)" : f.suggestion}</span></>}
-        </p>
-      )}
-      {f.category === "visual" && f.suggestion && !decided && (
-        <p className="mt-2 flex items-center gap-2 text-[13px] text-gray-600"><span className="inline-block h-3.5 w-3.5 rounded-sm border border-gray-200" style={{ background: f.quote ?? undefined }} />{f.quote} <span className="text-gray-400">→ closest brand colour</span><span className="inline-block h-3.5 w-3.5 rounded-sm border border-gray-200" style={{ background: f.suggestion }} />{f.suggestion}</p>
-      )}
-      {main && !decided && (
-        <div className="mt-2 text-[12px] leading-snug text-gray-500">
-          <span className="whitespace-nowrap font-mono font-semibold text-gray-700">{main.id}</span> {nb(main.text)}
-          {rest.length > 0 && !moreSources && <button onClick={() => setMoreSources(true)} className="ml-1 text-gray-400 underline underline-offset-2 hover:text-gray-700">+{rest.length} more</button>}
-          {moreSources && rest.map((s) => <div key={s.id} className="mt-1"><span className="whitespace-nowrap font-mono font-semibold text-gray-700">{s.id}</span> {nb(s.text)}</div>)}
+        <div className={`mt-2.5 space-y-1 rounded-md border px-3 py-2 text-[13px] leading-snug ${decided ? "border-gray-100 bg-white" : "border-gray-200 bg-gray-50"}`}>
+          <div className="flex gap-3"><span className="w-[68px] shrink-0 pt-px text-[11px] font-medium uppercase tracking-wide text-gray-400">{f.location === "image" ? "On image" : "Now"}</span><span className={decided ? "text-gray-400 line-through" : "text-red-700 line-through decoration-red-300"}>{f.quote}</span></div>
+          {f.suggestion !== null && <div className="flex gap-3"><span className="w-[68px] shrink-0 pt-px text-[11px] font-medium uppercase tracking-wide text-gray-400">{f.title === "Missing alt text" ? "Alt text" : "Change to"}</span><span className={decided ? "text-gray-500" : "font-medium text-brand-700"}>{f.suggestion === "" ? "(remove these words)" : f.suggestion}</span></div>}
         </div>
       )}
-      {f.location === "image" && f.category !== "accessibility" && !decided && <p className="mt-1.5 text-[12px] text-gray-400">This is in the image itself. Fix the design, then use Edit → Replace image.</p>}
+      {!f.quote && f.title === "Missing alt text" && f.suggestion && (
+        <div className="mt-2.5 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-[13px]"><span className="mr-3 text-[11px] font-medium uppercase tracking-wide text-gray-400">Alt text</span><span className="font-medium text-brand-700">{f.suggestion}</span></div>
+      )}
+      {f.category === "visual" && f.suggestion && !decided && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] text-gray-700">
+          <span className="flex items-center gap-1.5"><span className="inline-block h-4 w-4 rounded-sm border border-gray-300" style={{ background: f.quote ?? undefined }} />In the image</span>
+          <span className="text-gray-400">→</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-4 w-4 rounded-sm border border-gray-300" style={{ background: f.suggestion }} />Closest brand colour</span>
+        </div>
+      )}
+      {main && !decided && (
+        <div className="mt-2.5 space-y-1">
+          {[main, ...(moreSources ? rest : [])].map((src) => (
+            <div key={src.id} className="flex gap-2 text-[12px] leading-snug">
+              <span className="h-fit shrink-0 whitespace-nowrap rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-gray-700">{src.id}</span>
+              <span className="pt-0.5 text-gray-500">{nb(src.text)}</span>
+            </div>
+          ))}
+          {rest.length > 0 && !moreSources && <button onClick={() => setMoreSources(true)} className="text-[12px] text-gray-500 underline underline-offset-2 hover:text-gray-800">Show {rest.length} more rule{rest.length > 1 ? "s" : ""} and fact{rest.length > 1 ? "s" : ""}</button>}
+        </div>
+      )}
+      {inDesign(f) && !decided && <p className="mt-2.5 rounded-md bg-amber-50 px-3 py-2 text-[12px] text-amber-900">This is in the picture itself, so it is fixed in the design. Ask the designer for a new image, then replace it.</p>}
       {decided && (
         <p className="mt-1 flex items-center gap-2 text-[12px] text-gray-500">
           <span className="font-medium text-gray-700">{statusLabel[f.status] ?? f.status}</span>{f.decision_reason && f.status !== "accepted" && f.status !== "resolved" && <span>· {f.decision_reason}</span>}
@@ -327,6 +343,7 @@ function IssueRow({ f, subId, editable }: { f: WFinding; subId: number; editable
         <div className="mt-3">
           {mode === "none" && (
             <div className="flex flex-wrap gap-2">
+              {inDesign(f) && onReplaceImage && <button onClick={onReplaceImage} className="h-7 rounded-md bg-brand-500 px-2.5 text-xs font-medium text-white hover:bg-brand-600">Replace image</button>}
               {canApply && <ActionButton small variant="primary" action={() => acceptFixAction(f.id, subId)}>{f.title === "Missing alt text" ? "Use this alt text" : "Accept"}</ActionButton>}
               {canApply && <button onClick={() => setMode("edit")} className="h-7 rounded-md border border-gray-300 px-2.5 text-xs text-gray-700 hover:bg-gray-50">Edit</button>}
               <button onClick={() => setMode("dismiss")} className="h-7 rounded-md px-2 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-800">{f.severity === "blocker" ? "Ask for an exception" : "Dismiss"}</button>
@@ -524,7 +541,7 @@ function AiUse({ data }: { data: WorkspaceData }) {
   return (
     <div className="space-y-3 text-[13px] text-gray-700">
       {!c ? <p className="text-gray-500">Not checked yet.</p> : c.ai_used ? (
-        <p>The last check used <b>{c.ai_model}</b> for tone, messaging and claims{data.sub.image_data ? ", and to read the image" : ""}. {c.redactions ? `${c.redactions} private item(s) were hidden before sending.` : "No private details needed hiding."} Every AI issue was checked against the cited rule. If the citation wasn&apos;t real, it&apos;s marked “AI, unverified” and can&apos;t block anything.</p>
+        <p>The last check used <b>an AI model</b> for tone, messaging and claims{data.sub.image_data ? ", and to read the image" : ""}. {c.redactions ? `${c.redactions} private item(s) were hidden before sending.` : "No private details needed hiding."} Every AI issue was checked against the cited rule. If the citation wasn&apos;t real, it&apos;s marked “AI, unverified” and can&apos;t block anything.</p>
       ) : (
         <p>No AI was used in the last check. Everything came from code checks against the brand rules.</p>
       )}

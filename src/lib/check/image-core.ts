@@ -84,7 +84,7 @@ export function analysePixels(data: ArrayLike<number>, channels: number, size: {
       findings.push({
         location: "image", category: "visual", severity: "major", method: "code",
         title: "Colour not in the brand palette",
-        message: `${hex} covers about ${Math.round(share * 100)}% of the image. Nearest brand colour: ${k.nearest?.name} ${k.nearest?.hex} (difference ΔE ${Math.round(k.d * 10) / 10}; above ${ON_BRAND_DE} is a visibly different colour, and it is not a lighter or darker shade of a brand colour).`,
+        message: `${cap(colourName(hex))} (${hex}) covers about ${Math.round(share * 100)}% of the image. It is not a brand colour or a shade of one. The closest brand colour is ${k.nearest?.name} (${k.nearest?.hex}).`,
         quote: hex, suggestion: k.nearest?.hex ?? null,
         sources: [{ id: "VI-1", kind: "rule", text: paletteText }],
       });
@@ -111,7 +111,7 @@ export function analysePixels(data: ArrayLike<number>, channels: number, size: {
         findings.push({
           location: "image", category: "visual", severity: "blocker", method: "code",
           title: "Text on the image is hard to read",
-          message: `Estimated contrast ${contrast.ratio} : 1 between ${worst.fg.toUpperCase()} and the ${bg.hex.toUpperCase()} background. WCAG AA needs 4.5 : 1 for normal text (3 : 1 for large text). Use Ink #1D2129 text on Cream, or Cream text on Forest.`,
+          message: `The ${colourName(worst.fg)} text on the ${colourName(bg.hex)} background is hard to read: about ${contrast.ratio} : 1, and it needs at least 4.5 : 1 (3 : 1 for very large text). Use dark Ink text on Cream, or Cream text on Forest.`,
           quote: `${worst.fg.toUpperCase()} on ${bg.hex.toUpperCase()}`, suggestion: null,
           sources: [{ id: "VI-4", kind: "rule", text: canon.rules.find((r) => r.id === "VI-4")?.body ?? "" }, { id: "WCAG 1.4.3", kind: "wcag", text: "Contrast (Minimum): at least 4.5:1 for normal text." }],
         });
@@ -134,3 +134,15 @@ export function analysePixels(data: ArrayLike<number>, channels: number, size: {
     findings,
   };
 }
+
+/** Plain words for a colour, e.g. "bright orange", "light grey", "dark green". */
+export function colourName(hex: string): string {
+  const c = toLch(parse(hex)!);
+  const l = c?.l ?? 50, ch = c?.c ?? 0, h = c?.h ?? 0;
+  if (ch >= 4 && ch < 16 && l > 85 && h > 55 && h < 115) return "cream";
+  if (ch < 12) return l > 90 ? "white" : l > 70 ? "light grey" : l > 40 ? "grey" : l > 20 ? "dark grey" : "black";
+  const hue = h < 20 || h >= 340 ? "pink" : h < 40 ? "red" : h < 75 ? "orange" : h < 105 ? "yellow" : h < 165 ? "green" : h < 220 ? "teal" : h < 300 ? "blue" : "purple";
+  const prefix = l > 78 ? "light " : l < 35 ? "dark " : ch > 70 ? "bright " : "";
+  return prefix + hue;
+}
+function cap(t: string) { return t.charAt(0).toUpperCase() + t.slice(1); }

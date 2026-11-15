@@ -93,7 +93,7 @@ export async function acceptAllAction(subId: number): Promise<ActionResult> {
     const fs = await store.findingsFor(q, subId, sub.current_version);
     let n = 0;
     for (const f of fs) {
-      if (f.status !== "open" || f.suggestion === null || f.method === "ai_unverified" || f.category === "visual") continue;
+      if (f.status !== "open" || f.suggestion === null || f.method === "ai_unverified" || f.category === "visual" || (f.location === "image" && f.title !== "Missing alt text")) continue;
       try { await store.acceptFix(q, f.id, actor); n++; } catch { /* already changed */ }
     }
     return `${n} fix${n === 1 ? "" : "es"} applied. Run the check again to confirm.`;

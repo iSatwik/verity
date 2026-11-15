@@ -125,6 +125,7 @@ export async function acceptFix(q: Q, fid: number, actor: DemoUser, edited?: str
   assertEditable(sub, actor);
   const replacement = edited ?? f.suggestion;
   if (replacement === null || replacement === undefined) throw new Error("This finding has no automatic fix. Edit the text yourself.");
+  if (f.location === "image" && f.title !== "Missing alt text") throw new Error("This is in the picture itself. Replace the image with a corrected design instead.");
   if (f.location === "image" && f.title === "Missing alt text") {
     await q("UPDATE submissions SET image_alt = $2, updated_at = now() WHERE id = $1", [sub.id, replacement]);
   } else if (f.location === "image" && f.category === "visual") {

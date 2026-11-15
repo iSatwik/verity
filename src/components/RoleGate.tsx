@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { chooseRole } from "@/app/actions";
 import type { DemoUser } from "@/lib/users";
 import { Avatar } from "./ui";
+import { BrandLogo } from "./BrandLogo";
 
 /** First screen on a visit: pick who you are before anything else loads. */
 export function RoleGate({ users }: { users: DemoUser[] }) {
@@ -12,7 +13,7 @@ export function RoleGate({ users }: { users: DemoUser[] }) {
   const [busy, setBusy] = useState<string | null>(null);
   return (
     <div className="mx-auto max-w-3xl py-6">
-      <p className="text-[13px] text-gray-500">Verity · brand review before publishing</p>
+      <p className="flex items-center gap-2 text-[13px] text-gray-500"><BrandLogo size={22} />Aranya Naturals · reviewed with Verity</p>
       <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-gray-900">Who are you?</h1>
       <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-gray-600">
         This is a demo for <b className="font-medium text-gray-800">Aranya Naturals</b>, a made-up skincare brand. Pick a person to use Verity as them.

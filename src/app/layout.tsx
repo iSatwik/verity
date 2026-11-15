@@ -7,6 +7,7 @@ import { USERS } from "@/lib/users";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { NavLinks } from "@/components/NavLinks";
 import { RoleGate } from "@/components/RoleGate";
+import { BrandChip } from "@/components/BrandLogo";
 
 const inter = localFont({
   src: "../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
@@ -30,6 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <header className="sticky top-0 z-30 border-b border-gray-200 bg-white">
           <div className="mx-auto flex max-w-6xl items-center gap-8 px-5">
             <Link href="/" className="py-3 text-[18px] font-semibold tracking-tight text-gray-900">verity</Link>
+            <BrandChip />
             {chosen && <NavLinks role={user.role} />}
             {chosen && <div className="ml-auto"><RoleSwitcher users={USERS} currentId={user.id} highlight={false} /></div>}
           </div>
