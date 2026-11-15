@@ -271,13 +271,13 @@ function NextStep({ data, required, exceptions, isCreatorSide }: { data: Workspa
   const myRole = me.role === "admin" ? "manager" : me.role;
   let msg: React.ReactNode = null;
   if (data.unchecked && !["in_review", "approved"].includes(sub.status)) msg = <>You changed the content after the last check. <b>Run the check</b> to see what&apos;s left.</>;
-  else if (sub.status === "changes_requested" && last && isCreatorSide) msg = <><b>{last.name} asked for changes:</b> “{last.note}”. Edit the content, check it again and resubmit.</>;
+  else if (sub.status === "changes_requested" && last && isCreatorSide) msg = <><b>{last.name} asked for changes:</b> “{trimDot(last.note ?? "")}.” Edit the content, check it again and resubmit.</>;
   else if (sub.status === "needs_fixes" && isCreatorSide) msg = <><b>{required} issue{required === 1 ? "" : "s"} to resolve before you can submit.</b> For each one, accept the suggestion, edit the text yourself, or dismiss it with a reason.</>;
   else if (sub.status === "ready" && isCreatorSide) msg = <><b>Ready to submit.</b> All required issues are resolved{exceptions ? `, and ${exceptions} exception request${exceptions > 1 ? "s" : ""} will go to the reviewers` : ""}.</>;
   else if (sub.status === "in_review" && data.required.includes(myRole as "manager" | "compliance") && waitingFor.includes(PERSON[myRole])) msg = <><b>Your review.</b> Read the content and the creator&apos;s decisions, then approve or request changes.</>;
-  else if (sub.status === "in_review") msg = <>Waiting for review by {waitingFor.join(" and ")}. {isCreatorSide ? "You'll see their decision here." : "Switch role at the top right to review as them."}</>;
+  else if (sub.status === "in_review") msg = <>Waiting for review by {trimDot(waitingFor.join(" and "))}. {isCreatorSide ? "You'll see their decision here." : "Switch role at the top right to review as them."}</>;
   else if (sub.status === "approved") msg = <><b>Approved and locked.</b> This exact version can be published.</>;
-  else if (sub.status === "changes_requested" && last) msg = <><b>{last.name} asked for changes:</b> “{last.note}”. Waiting for the creator to update it.</>;
+  else if (sub.status === "changes_requested" && last) msg = <><b>{last.name} asked for changes:</b> “{trimDot(last.note ?? "")}.” Waiting for the creator to update it.</>;
   else if (["needs_fixes", "ready", "changes_requested"].includes(sub.status)) msg = <>The creator is still working on this.</>;
   if (!msg) return null;
   return <div className={`rounded-lg px-4 py-3 text-[14px] ${sub.status === "approved" ? "bg-brand-50 text-brand-700" : "bg-gray-100 text-gray-800"}`}>{msg}</div>;
@@ -371,11 +371,11 @@ function ImageSection({ data }: { data: WorkspaceData }) {
             <div>
               <dt className="text-gray-500">Main colours</dt>
               <dd className="mt-0.5">
-                {(() => { const off = colours.filter((c) => !c.onBrand).length; return off ? <span className="font-medium text-red-700">{off} of {colours.length} are not brand colours</span> : <span className="text-gray-900">All match the brand colours</span>; })()}
+                {(() => { const off = colours.filter((c) => !c.onBrand && c.share >= 0.08).length; return off ? <span className="font-medium text-red-700">{off} of {colours.length} are not brand colours</span> : <span className="text-gray-900">Matches the brand colours</span>; })()}
                 <span className="mt-1.5 flex flex-wrap gap-2.5">
                   {colours.map((c) => (
-                    <span key={c.hex} title={`${c.onBrand ? "Brand colour" : "Not a brand colour"}. Nearest brand colour: ${c.nearest} ${c.nearestHex}`} className="flex items-center gap-1 text-[12px] text-gray-500">
-                      <span className={`h-4 w-4 rounded-sm ${c.onBrand ? "border border-gray-200" : "ring-2 ring-red-500 ring-offset-1"}`} style={{ background: c.hex }} />
+                    <span key={c.hex} title={`${c.onBrand ? "Brand colour" : c.share >= 0.08 ? "Not a brand colour" : "Not a brand colour (too small to matter)"}. Nearest brand colour: ${c.nearest} ${c.nearestHex}`} className="flex items-center gap-1 text-[12px] text-gray-500">
+                      <span className={`h-4 w-4 rounded-sm ${c.onBrand || c.share < 0.08 ? "border border-gray-200" : "ring-2 ring-red-500 ring-offset-1"}`} style={{ background: c.hex }} />
                       {Math.round(c.share * 100)}%
                     </span>
                   ))}
