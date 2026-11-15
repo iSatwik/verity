@@ -12,6 +12,8 @@ export interface DemoUser {
   team: string;
   color: string;
   canDo: string[];
+  /** One plain sentence for the home page. */
+  oneLine: string;
 }
 
 export const USERS: DemoUser[] = [
@@ -24,6 +26,7 @@ export const USERS: DemoUser[] = [
     team: "BrightLeaf agency",
     color: "#e8590c",
     canDo: ["Submit posts, emails, documents and images", "See every issue with the rule it breaks", "Accept fixes and re-check", "Send for approval"],
+    oneLine: "Writes posts and fixes the issues Verity finds.",
   },
   {
     id: "u_ritika",
@@ -34,6 +37,7 @@ export const USERS: DemoUser[] = [
     team: "Aranya Naturals",
     color: "#3b5bdb",
     canDo: ["Review submissions", "Comment on any line", "Approve, request changes or approve with exception", "See insights"],
+    oneLine: "Reviews every post and gives the final approval.",
   },
   {
     id: "u_arjun",
@@ -44,6 +48,7 @@ export const USERS: DemoUser[] = [
     team: "Aranya Naturals",
     color: "#9c36b5",
     canDo: ["Review only content with claims", "Check evidence for each claim", "Approve or request changes"],
+    oneLine: "Checks posts that make claims, like results or prices.",
   },
   {
     id: "u_satwik",
@@ -54,6 +59,7 @@ export const USERS: DemoUser[] = [
     team: "Aranya Naturals",
     color: "#1b7a5e",
     canDo: ["Edit brand rules, facts and terms", "Import a brand guideline document", "See insights and the audit log"],
+    oneLine: "Keeps the brand rules, facts and words up to date.",
   },
 ];
 

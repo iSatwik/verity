@@ -27,7 +27,7 @@ export function Landing({ users, currentId, demoId }: { users: DemoUser[]; curre
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white" style={{ background: u.color }}>{u.initials}</span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[14px] font-medium text-gray-900">{u.name} <span className="font-normal text-gray-500">· {u.roleLabel}</span>{currentId === u.id && <span className="ml-2 text-[12px] text-brand-700">current</span>}</span>
-                <span className="block truncate text-[13px] text-gray-500">{u.canDo.join(" · ")}</span>
+                <span className="block text-[13px] text-gray-500">{u.oneLine}</span>
               </span>
               <span className="text-gray-400">→</span>
             </button>

@@ -229,11 +229,12 @@ export function Workspace({ data }: { data: WorkspaceData }) {
         <div className="space-y-5">
           {(["in_review", "approved"].includes(sub.status) || exceptions.length > 0) && <ApprovalPanel data={data} exceptions={exceptions} isCreatorSide={isCreatorSide} />}
 
-          <section className="rounded-lg border border-gray-200 bg-white">
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+          <section className="rounded-lg border border-gray-200 bg-white lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100vh-2rem)] lg:flex-col">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
               <h2 className="text-[13px] font-semibold text-gray-900">Issues {sub.current_version > 0 && <span className="font-normal text-gray-500">· {open.length} open</span>}</h2>
               {editable && fixable.length > 1 && <ActionButton small variant="secondary" action={() => acceptAllAction(sub.id)}>Accept all {fixable.length} suggestions</ActionButton>}
             </div>
+            <div className="lg:min-h-0 lg:overflow-y-auto">
             {sub.current_version === 0 && <p className="px-5 py-4 text-sm text-gray-500">Not checked yet.</p>}
             {sub.current_version > 0 && findings.length === 0 && <p className="px-5 py-4 text-sm text-gray-700">No issues found. Every claim matches an approved fact.</p>}
             {SEV_ORDER.map((sev) => {
@@ -252,6 +253,7 @@ export function Workspace({ data }: { data: WorkspaceData }) {
                 <div className="divide-y divide-gray-100">{findings.filter((f) => f.status !== "open").map((f) => <IssueRow key={f.id} f={f} subId={sub.id} editable={editable} />)}</div>
               </details>
             )}
+          </div>
           </section>
         </div>
       </div>
@@ -365,13 +367,16 @@ function ImageSection({ data }: { data: WorkspaceData }) {
           {colours.length > 0 && (
             <div>
               <dt className="text-gray-500">Main colours</dt>
-              <dd className="mt-1.5 flex flex-wrap gap-3">
-                {colours.map((c) => (
-                  <span key={c.hex} title={`Nearest brand colour: ${c.nearest} ${c.nearestHex} (ΔE ${c.deltaE})`} className="flex items-center gap-1.5 text-[12px] text-gray-600">
-                    <span className="h-4 w-4 rounded-sm border border-gray-200" style={{ background: c.hex }} />
-                    {Math.round(c.share * 100)}%{!c.onBrand && <span className="text-red-600">off-brand</span>}
-                  </span>
-                ))}
+              <dd className="mt-0.5">
+                {(() => { const off = colours.filter((c) => !c.onBrand).length; return off ? <span className="font-medium text-red-700">{off} of {colours.length} are not brand colours</span> : <span className="text-gray-900">All match the brand colours</span>; })()}
+                <span className="mt-1.5 flex flex-wrap gap-2.5">
+                  {colours.map((c) => (
+                    <span key={c.hex} title={`${c.onBrand ? "Brand colour" : "Not a brand colour"}. Nearest brand colour: ${c.nearest} ${c.nearestHex}`} className="flex items-center gap-1 text-[12px] text-gray-500">
+                      <span className={`h-4 w-4 rounded-sm ${c.onBrand ? "border border-gray-200" : "ring-2 ring-red-500 ring-offset-1"}`} style={{ background: c.hex }} />
+                      {Math.round(c.share * 100)}%
+                    </span>
+                  ))}
+                </span>
               </dd>
             </div>
           )}

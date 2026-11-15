@@ -60,7 +60,7 @@ export function timeAgo(d: string | Date): string {
 }
 
 export function IssueCounts({ b, m, o }: { b: number; m: number; o: number }) {
-  if (b + m + o === 0) return <span className="text-[13px] text-gray-500">None</span>;
+  if (b + m + o === 0) return <span className="text-[13px] text-gray-500">No issues</span>;
   const parts: React.ReactNode[] = [];
   if (b) parts.push(<span key="b" className="text-red-700">{b} must fix</span>);
   if (m) parts.push(<span key="m" className="text-amber-700">{m} should fix</span>);

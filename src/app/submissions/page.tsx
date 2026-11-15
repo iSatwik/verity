@@ -27,20 +27,20 @@ export default async function Submissions() {
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-200 text-left text-[12px] font-medium text-gray-500">
-            <tr><th className="px-4 py-3">Title</th><th className="px-4 py-3">Channel</th><th className="px-4 py-3">Open issues</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Approval route</th><th className="px-4 py-3">Author</th><th className="px-4 py-3">Updated</th></tr>
+            <tr><th className="px-4 py-3">Title</th><th className="px-4 py-3">Channel</th><th className="px-4 py-3">Open issues</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Needs approval from</th><th className="px-4 py-3">Author</th><th className="px-4 py-3">Updated</th></tr>
           </thead>
           <tbody>
             {rows.map((r) => {
               const a = getUser(r.author_id);
               return (
                 <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3"><Link href={`/submissions/${r.id}`} className="font-medium text-gray-900 hover:underline">{r.title}</Link><span className="ml-2 text-xs text-gray-400">#{r.id} · v{r.current_version}{r.has_image ? " · 🖼 image" : ""}</span></td>
+                  <td className="px-4 py-3"><Link href={`/submissions/${r.id}`} className="font-medium text-gray-900 hover:underline">{r.title}</Link>{r.has_image && <span className="ml-2 text-xs text-gray-400">with image</span>}</td>
                   <td className="px-4 py-3"><ChannelTag channel={r.channel} /></td>
                   <td className="px-4 py-3">
-                    {r.status === "approved" ? <span className="text-gray-400">—</span> : <IssueCounts b={r.blockers} m={r.majors} o={r.others} />}
+                    {r.status === "approved" ? <span className="text-[13px] text-gray-500">Approved</span> : <IssueCounts b={r.blockers} m={r.majors} o={r.others} />}
                   </td>
                   <td className="px-4 py-3"><StatusPill status={r.status} /></td>
-                  <td className="px-4 py-3 text-xs text-gray-600">{r.risk_tier === "claims" ? "Manager + Compliance" : "Manager"}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600">{r.risk_tier === "claims" ? "Brand manager + compliance" : "Brand manager"}</td>
                   <td className="px-4 py-3"><span className="flex items-center gap-2"><Avatar initials={a.initials} color={a.color} size={22} /><span className="text-xs text-gray-600">{a.name}</span></span></td>
                   <td className="px-4 py-3 text-xs text-gray-500">{timeAgo(r.updated_at)}</td>
                 </tr>
