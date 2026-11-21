@@ -36,7 +36,7 @@ export default async function RuleHealthPage() {
       <div>
         <h1 className="text-[22px] font-semibold tracking-tight">Rule health</h1>
         <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-gray-600">
-          Verity learns which rules confuse people from what they do with its warnings: accepted, dismissed, marked as a false alarm, or marked "rule is unclear".
+          Verity learns which rules confuse people from what they do with its warnings: accepted, dismissed, marked as a false alarm, or marked &ldquo;rule is unclear&rdquo;.
           Each rule gets a clarity score once it has {MIN_DECISIONS} or more decisions. Unclear rules get a suggested clearer wording, built from real cases, for the brand admin to approve.
         </p>
       </div>
