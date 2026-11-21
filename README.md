@@ -74,6 +74,7 @@ Verity checks content **before it is published** (a social post, an ad, an email
 - **Fixed: offer-terms loop.** Accepting the "offer is missing terms" fix could add "T&C apply." again and again, because the suggestion didn't add the missing end date. Verity now only offers a fix that actually satisfies the rule; otherwise it asks for the date.
 - **Fixed: repeated carry-over notes.** Exception notes carried over to the next version added "(carried over…)" again each time.
 - **Fixed: blurring wasn't applied.** Image blurring was silently not happening (sharp keeps only the last `resize()` in one pipeline). The new privacy test caught this.
+- **Checks are faster on the live site:** about 40–50 s → about 4 s. Each action now runs in one database transaction, the AI uses a low thinking level, and the AI text review runs while the image is being read.
 - **Robustness:**
   - Every action refuses to run without a valid session.
   - Two edits made at the same time are merged, not lost (`race-edit` test).
@@ -148,7 +149,7 @@ Creator ─► New submission (text / .docx / .pdf / image)
 | App | Next.js 16 (App Router, Server Actions), React 19, TypeScript, Tailwind CSS 4 |
 | Database | Supabase Postgres via postgres.js, with row-level security; PGlite (in-process Postgres) for local runs and tests |
 | Auth | Node crypto: scrypt passwords, HMAC-SHA256 session cookie |
-| AI | Gemini (hosted) or any OpenAI-compatible server (Ollama, vLLM…), JSON output, temperature 0 |
+| AI | Gemini 3.5 Flash-Lite (falls back to 3.5 Flash) or any OpenAI-compatible server (Ollama, vLLM…), JSON output, temperature 0, low thinking |
 | Images | tesseract.js (OCR on the server), sharp (pixels, hiding), culori (CIEDE2000, WCAG contrast) |
 | Documents | mammoth (.docx), unpdf (.pdf) |
 | Testing | tsx scripts (accuracy, access, privacy), Puppeteer end-to-end flows |
