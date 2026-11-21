@@ -1,6 +1,7 @@
 // Submissions, versions, findings, decisions, approvals, comments and the audit log.
 // Every function takes a query function so the seeder and the app share the same code.
 
+import { applyFalseAlarms, normQuote } from "./rule-health";
 import { createHash } from "node:crypto";
 import { loadCanonWith, type Canon } from "./canon";
 import { runPipeline, riskTier } from "./check";
@@ -58,9 +59,16 @@ export async function runCheckFor(q: Q, id: number, actor: DemoUser, opts: { ai?
 
   await q("INSERT INTO versions (submission_id, n, text, image_alt, image_text, canon_version, created_by, image_hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)", [id, n, sub.draft_text, sub.image_alt, imageText, canon.version, actor.id, imgHash(sub.image_data)]);
 
+  // Rule health: warnings already marked as false alarms (same rule, same wording) are not raised again.
+  const alarms = await q<{ rule_id: string; quote_norm: string }>("SELECT rule_id, quote_norm FROM false_alarms");
+  const { kept, hidden } = applyFalseAlarms(result.findings, alarms);
+  result.findings = kept;
+  if (hidden.length) result.notes.push(`${hidden.length} warning${hidden.length > 1 ? "s were" : " was"} not shown because ${hidden.length > 1 ? "they were" : "it was"} marked as a false alarm before (see Rule health).`);
+
   // Earlier decisions carry over when the same issue appears again (so nobody has to dismiss twice).
   const previous = await q<FindingRow>("SELECT * FROM findings WHERE submission_id = $1 AND version_n = $2 AND status IN ('dismissed','exception_requested')", [id, n - 1]);
   for (const f of result.findings) {
+    if (f.sources?.[0]?.id) await feedback(q, f.sources[0].id, "flagged", f.quote ?? null, null, id, actor.id);
     const prev = previous.find((p) => p.title === f.title && (p.quote ?? "") === (f.quote ?? "") && p.location === f.location);
     await insertFinding(q, id, n, f, prev ? { status: prev.status, reason: prev.decision_reason, by: prev.decided_by } : undefined);
   }
@@ -141,6 +149,7 @@ export async function acceptFix(q: Q, fid: number, actor: DemoUser, edited?: str
     for (const o of others) if (o.quote && !next.includes(o.quote)) await q("UPDATE findings SET status = 'resolved', decided_by = $2, decision_reason = 'Fixed by another change' WHERE id = $1", [o.id, actor.id]);
   }
   await q("UPDATE findings SET status = 'accepted', decided_by = $2, decision_reason = $3 WHERE id = $1", [fid, actor.id, edited && edited !== f.suggestion ? "Accepted with edits" : "Accepted suggested fix"]);
+  if (f.sources?.[0]?.id) await feedback(q, f.sources[0].id, "accepted", f.quote ?? null, replacement, sub.id, actor.id);
   await audit(q, actor.id, "finding.accepted", sub.id, { finding: f.id, title: f.title, rule: f.sources?.[0]?.id, from: f.quote, to: replacement });
 }
 
@@ -155,6 +164,13 @@ export async function dismissFinding(q: Q, fid: number, actor: DemoUser, reason:
   const status = f.severity === "blocker" ? "exception_requested" : "dismissed";
   if (f.severity === "blocker" && !note.trim()) throw new Error("Must-fix issues need a written explanation. A reviewer has to approve the exception.");
   await q("UPDATE findings SET status = $2, decided_by = $3, decision_reason = $4 WHERE id = $1", [fid, status, actor.id, full]);
+  const rule = f.sources?.[0]?.id;
+  if (rule) {
+    const kind = status === "exception_requested" ? "exception" : reason === "False positive" ? "false_positive" : reason === "Rule is unclear" ? "unclear" : "dismissed";
+    await feedback(q, rule, kind, f.quote ?? null, note || null, sub.id, actor.id);
+    // remember the false alarm so the same wording is not flagged again for this rule
+    if (kind === "false_positive" && f.quote) await q("INSERT INTO false_alarms (rule_id, quote_norm, quote, created_by) VALUES ($1,$2,$3,$4) ON CONFLICT (rule_id, quote_norm) DO NOTHING", [rule, normQuote(f.quote), f.quote, actor.id]);
+  }
   await audit(q, actor.id, status === "dismissed" ? "finding.dismissed" : "finding.exception_requested", sub.id, { finding: f.id, title: f.title, rule: f.sources?.[0]?.id, reason: full });
   await refreshStatus(q, sub.id);
 }
@@ -268,4 +284,8 @@ export async function addComment(q: Q, id: number, actor: DemoUser, body: string
   if (!body.trim()) throw new Error("Write a comment first.");
   await q("INSERT INTO comments (submission_id, author_id, body, quote) VALUES ($1,$2,$3,$4)", [id, actor.id, body.trim(), quote?.trim() || null]);
   await audit(q, actor.id, "comment.added", id, { quote: quote ?? null });
+}
+
+async function feedback(q: Q, rule: string, kind: string, quote: string | null, note: string | null, sub: number | null, user: string | null) {
+  await q("INSERT INTO rule_feedback (rule_id, kind, quote, note, submission_id, user_id) VALUES ($1,$2,$3,$4,$5,$6)", [rule, kind, quote, note, sub, user]);
 }

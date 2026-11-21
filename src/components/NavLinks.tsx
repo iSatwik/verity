@@ -10,6 +10,7 @@ export function NavLinks({ role }: { role: Role }) {
     { href: "/submissions", label: "Submissions" },
     { href: "/review", label: "Review" },
     { href: "/canon", label: "Brand rules" },
+    { href: "/rule-health", label: "Rule health" },
     { href: "/insights", label: "Insights" },
     { href: "/audit", label: "Audit log" },
   ];

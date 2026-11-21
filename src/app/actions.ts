@@ -229,3 +229,26 @@ export async function resetDemoAction(): Promise<ActionResult> {
     return "Demo data reset.";
   }, ["/"]);
 }
+
+// ---------- Round 3: Rule health ----------
+export async function applyRuleRewriteAction(ruleId: string, body: string, doEx: string, dontEx: string): Promise<ActionResult> {
+  return wrap(async () => {
+    const u = await requireAdmin();
+    if (!body.trim()) throw new Error("The rule text can't be empty.");
+    const before = await q<{ body: string }>("SELECT body FROM rules WHERE id = $1", [ruleId]);
+    if (!before.length) throw new Error("That rule no longer exists.");
+    await q("UPDATE rules SET body = $2, do_example = NULLIF($3, ''), dont_example = NULLIF($4, ''), updated_at = now() WHERE id = $1", [ruleId, body.trim(), doEx.trim(), dontEx.trim()]);
+    await q("INSERT INTO rule_feedback (rule_id, kind, quote, note, user_id) VALUES ($1, 'rewritten', NULL, $2, $3)", [ruleId, before[0].body, u.id]);
+    await bumpCanon(u.id, "rule.rewritten", { id: ruleId });
+    return `${ruleId} updated. The new wording applies from the next check.`;
+  }, ["/rule-health", "/canon"]);
+}
+
+export async function removeFalseAlarmAction(id: number): Promise<ActionResult> {
+  return wrap(async () => {
+    const u = await requireAdmin();
+    const row = await q<{ rule_id: string; quote: string }>("DELETE FROM false_alarms WHERE id = $1 RETURNING rule_id, quote", [id]);
+    if (row.length) await store.audit(q, u.id, "false_alarm.removed", null, { rule: row[0].rule_id, quote: row[0].quote });
+    return row.length ? "This warning will be raised again from the next check." : "Already removed.";
+  }, ["/rule-health"]);
+}

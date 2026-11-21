@@ -116,6 +116,26 @@ CREATE TABLE IF NOT EXISTS findings (
   decided_by text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS rule_feedback (
+  id serial PRIMARY KEY,
+  rule_id text NOT NULL,
+  kind text NOT NULL,
+  quote text,
+  note text,
+  submission_id int,
+  user_id text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS rule_feedback_rule_idx ON rule_feedback (rule_id);
+CREATE TABLE IF NOT EXISTS false_alarms (
+  id serial PRIMARY KEY,
+  rule_id text NOT NULL,
+  quote_norm text NOT NULL,
+  quote text NOT NULL,
+  created_by text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (rule_id, quote_norm)
+);
 CREATE TABLE IF NOT EXISTS comments (
   id serial PRIMARY KEY,
   submission_id int NOT NULL,

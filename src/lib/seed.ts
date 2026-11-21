@@ -1,3 +1,4 @@
+import { seedRuleHistoryWith } from "./rule-history";
 import "server-only";
 import { rawQ } from "./db";
 import { PRODUCTS, RULES, FACTS, TERMS, PALETTE, CONFIDENTIAL, SAMPLES } from "./seed-data";
@@ -12,7 +13,10 @@ export async function seedIfEmpty(): Promise<void> {
   if (!claimed.length) return; // already seeded (or another instance is seeding)
   await seedCanon();
   await seedDemoSubmissions();
+  await seedRuleHistory();
 }
+
+export async function seedRuleHistory() { await seedRuleHistoryWith(q); }
 
 export async function seedCanon() {
   await q("INSERT INTO canon_meta (key, value) VALUES ('version', '1') ON CONFLICT (key) DO UPDATE SET value = '1'");
@@ -57,7 +61,7 @@ async function seedDemoSubmissions() {
 
 /** Wipe everything and start again (button on the About page). */
 export async function resetDemo() {
-  for (const t of ["canon_meta", "products", "rules", "facts", "terms", "palette", "confidential_terms", "submissions", "versions", "checks", "findings", "comments", "approvals", "audit_events", "ai_calls"]) {
+  for (const t of ["canon_meta", "products", "rules", "facts", "terms", "palette", "confidential_terms", "submissions", "versions", "checks", "findings", "comments", "approvals", "audit_events", "ai_calls", "rule_feedback", "false_alarms"]) {
     await q(`DELETE FROM ${t}`);
   }
   for (const seq of ["submissions_id_seq", "versions_id_seq", "checks_id_seq", "findings_id_seq", "comments_id_seq", "approvals_id_seq", "audit_events_id_seq", "ai_calls_id_seq"]) {
