@@ -17,8 +17,8 @@ interface Driver {
 }
 const SYSTEM: Actor = { kind: "system" };
 const ANON: Actor = { kind: "user", role: "anon", uid: "" };
-// set_config('role', ...) is SET LOCAL ROLE: the rest of the transaction runs as verity_app, which cannot bypass RLS.
-const SET_ACTOR = "SELECT set_config('role', 'verity_app', true), set_config('verity.role', $1, true), set_config('verity.uid', $2, true)";
+// set_config('role', ...) is SET LOCAL ROLE: the rest of the transaction runs as verity_rls, which cannot bypass RLS.
+const SET_ACTOR = "SELECT set_config('role', 'verity_rls', true), set_config('verity.role', $1, true), set_config('verity.uid', $2, true)";
 
 const g = globalThis as unknown as {
   __verityDriver?: Promise<Driver>;

@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 /**
  * Access limits inside the database (row-level security).
- * Every query from a signed-in person runs as the role `verity_app`, which cannot bypass RLS,
+ * Every query from a signed-in person runs as the role `verity_rls`, which cannot bypass RLS,
  * with `verity.role` and `verity.uid` set for that one transaction (see db.ts).
  * So even a bug in the app code cannot let a creator read someone else's draft,
  * change a brand rule, or edit the audit log.
@@ -201,14 +201,16 @@ const SIGNED_IN = "verity_role() IN ('creator','manager','compliance','admin')";
 const REVIEWER = "verity_role() IN ('manager','compliance','admin')";
 
 export const RLS_SQL: string[] = [
-  `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'verity_app') THEN CREATE ROLE verity_app NOLOGIN NOBYPASSRLS; END IF; END $$`,
-  // grant only when missing: on hosted Postgres a second GRANT can be refused
-  `DO $$ BEGIN IF NOT pg_has_role(current_user, 'verity_app', 'MEMBER') THEN EXECUTE 'GRANT verity_app TO ' || quote_ident(current_user); END IF; END $$`,
-  `GRANT USAGE ON SCHEMA public TO verity_app`,
-  `GRANT SELECT, INSERT, UPDATE, DELETE ON ${ALL.join(", ")} TO verity_app`,
-  `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO verity_app`,
-  // passwords are never readable by the app role; sign-in runs as the system
-  `REVOKE ALL ON accounts FROM verity_app`,
+  // verity_rls: a no-login role that cannot bypass RLS. Each user query switches to it for one transaction.
+  // (On a managed database where the app user cannot create roles, create it once as an admin:
+  //  CREATE ROLE verity_rls NOLOGIN NOBYPASSRLS; GRANT verity_rls TO <app user>;)
+  `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'verity_rls') THEN CREATE ROLE verity_rls NOLOGIN NOBYPASSRLS; END IF; END $$`,
+  `DO $$ BEGIN IF NOT pg_has_role(current_user, 'verity_rls', 'MEMBER') THEN EXECUTE 'GRANT verity_rls TO ' || quote_ident(current_user); END IF; END $$`,
+  `DO $$ BEGIN EXECUTE format('GRANT USAGE ON SCHEMA %I TO verity_rls', current_schema()); EXECUTE format('GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA %I TO verity_rls', current_schema()); END $$`,
+  `GRANT SELECT, INSERT, UPDATE, DELETE ON ${ALL.join(", ")} TO verity_rls`,
+  // passwords are never readable by the per-user role; sign-in runs as the app itself
+  `REVOKE ALL ON accounts FROM verity_rls`,
+  `GRANT ALL ON accounts TO CURRENT_USER`,
   `CREATE OR REPLACE FUNCTION verity_role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT coalesce(nullif(current_setting('verity.role', true), ''), 'anon') $$`,
   `CREATE OR REPLACE FUNCTION verity_uid() RETURNS text LANGUAGE sql STABLE AS $$ SELECT coalesce(current_setting('verity.uid', true), '') $$`,
   `CREATE OR REPLACE FUNCTION verity_can_see(sid int) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT EXISTS (SELECT 1 FROM submissions s WHERE s.id = sid AND (verity_role() IN ('manager','compliance','admin') OR s.author_id = verity_uid())) $$`,

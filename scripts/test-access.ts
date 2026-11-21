@@ -6,7 +6,7 @@ import { SCHEMA_SQL, RLS_SQL } from "../src/lib/schema";
 import { hashPassword, verifyPassword, signSession, verifySession } from "../src/lib/auth";
 
 const db = new PGlite();
-const SET_ACTOR = "SELECT set_config('role', 'verity_app', true), set_config('verity.role', $1, true), set_config('verity.uid', $2, true)";
+const SET_ACTOR = "SELECT set_config('role', 'verity_rls', true), set_config('verity.role', $1, true), set_config('verity.uid', $2, true)";
 type Who = { role: string; uid: string } | "system";
 async function run(who: Who, sql: string, params: unknown[] = []) {
   if (who === "system") return (await db.query(sql, params)).rows;
