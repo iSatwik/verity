@@ -93,10 +93,17 @@ async function ready(): Promise<void> {
   if (!g.__verityReady) {
     g.__verityReady = (async () => {
       const d = await driver();
-      for (const stmt of SCHEMA_SQL.split(";\n").map((s) => s.trim()).filter(Boolean)) {
-        await d.query(stmt);
+      // Cold starts: skip the ~70 setup statements when this exact schema is already in place.
+      const { createHash } = await import("node:crypto");
+      const hash = createHash("sha256").update(SCHEMA_SQL + RLS_SQL.join("\n")).digest("hex").slice(0, 16);
+      const have = await d.query<{ value: string }>("SELECT value FROM canon_meta WHERE key = 'schema_hash'").catch(() => []);
+      if (have[0]?.value !== hash) {
+        for (const stmt of SCHEMA_SQL.split(";\n").map((s) => s.trim()).filter(Boolean)) {
+          await d.query(stmt);
+        }
+        for (const stmt of RLS_SQL) await d.query(stmt);
+        await d.query("INSERT INTO canon_meta (key, value) VALUES ('schema_hash', $1) ON CONFLICT (key) DO UPDATE SET value = $1", [hash]);
       }
-      for (const stmt of RLS_SQL) await d.query(stmt);
       const { seedIfEmpty, ensureAccounts } = await import("./seed");
       await seedIfEmpty();
       await ensureAccounts();
