@@ -9,6 +9,8 @@ const AUDIENCE: Record<string, string> = {
   email: "Newsletter subscribers",
   website: "Website visitors",
   press: "Journalists and media",
+  whatsapp: "Past customers on WhatsApp",
+  linkedin: "Professionals and job seekers on LinkedIn",
   document: "Readers of the document",
 };
 

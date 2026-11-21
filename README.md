@@ -8,11 +8,12 @@ Verity checks content **before it is published** (a social post, an ad, an email
 
 - **Live demo:** https://verity-swart-ten.vercel.app
 - **Source:** https://github.com/iSatwik/verity
-- **Sign in:** click any of the four demo people on the sign-in page (one click), or use their email with the password `aranya-demo`.
+- **Sign in:** click any of the five demo people on the sign-in page (one click), or use their email with the password `aranya-demo`.
 
 | Person | Email | Role |
 |---|---|---|
-| Rahul K. | rahul@aranya.demo | Content creator |
+| Rahul K. | rahul@aranya.demo | Content creator (in-house) |
+| Neha P. | neha@aranya.demo | Content creator at a second agency, Glow Studio |
 | Ritika S. | ritika@aranya.demo | Brand manager |
 | Arjun V. | arjun@aranya.demo | Compliance reviewer |
 | Satwik | satwik@aranya.demo | Brand admin |
@@ -27,7 +28,8 @@ Verity checks content **before it is published** (a social post, an ad, an email
 4. Click **Accept all … suggestions**, then **Edit → Use the designer's corrected image (demo) → Save**, then **Check again**. Then click **Submit for review**. The post has claims, so it needs the brand manager **and** compliance.
 5. Open the menu at the top right and switch to **Arjun V.**, then click **Approve**. Then switch to **Ritika S.** and click **Approve**. The version is locked with a SHA-256 review record.
 6. Switch to **Satwik (Brand admin)** and open **Rule health**. Three rules people keep pushing back on are flagged, each with a suggested clearer wording you can review and apply.
-7. Open the menu at the top right and **Sign out**. Every page now asks you to sign in. Creators can only ever see their own submissions; the database enforces this (see `npm run test:access`).
+7. Switch to **Neha P.** (a creator at another agency). She sees only her two posts, not Rahul's. Opening one of Rahul's links as Neha gives "not found", because the database itself hides it.
+8. Try **New submission → load a sample**. There are 16 samples, including a reel script, a Hinglish WhatsApp broadcast, a LinkedIn hiring post and a clean post that passes.
 
 ## What's new in Round 3
 
@@ -73,6 +75,7 @@ Verity checks content **before it is published** (a social post, an ad, an email
 ### Loose ends closed
 - **Fixed: offer-terms loop.** Accepting the "offer is missing terms" fix could add "T&C apply." again and again, because the suggestion didn't add the missing end date. Verity now only offers a fix that actually satisfies the rule; otherwise it asks for the date.
 - **Fixed: repeated carry-over notes.** Exception notes carried over to the next version added "(carried over…)" again each time.
+- **New samples and channels.** 8 new posts with real-looking creatives, WhatsApp and LinkedIn as channels (Hinglish is fine on WhatsApp, flagged on LinkedIn), a check for personal phone numbers and emails, and paid-post disclosure that appears only at the end of a post.
 - **Fixed: blurring wasn't applied.** Image blurring was silently not happening (sharp keeps only the last `resize()` in one pipeline). The new privacy test caught this.
 - **Checks are faster on the live site:** about 40–50 s → about 4 s. Each action now runs in one database transaction, the AI uses a low thinking level, and the AI text review runs while the image is being read.
 - **Robustness:**
@@ -88,8 +91,8 @@ Verity checks content **before it is published** (a social post, an ad, an email
 |---|---|
 | **Accounts** | Email + password sign-in, signed sessions, lock-out, sign out, one-click demo people, access limits enforced in Postgres |
 | **Brand rules** | Rules (voice, messaging, claims, visual, accessibility, disclosure), approved facts with source, owner, valid-from/until and status, terminology (brand/product names, banned and preferred words), colour palette, confidential terms. Admin add/edit/delete; every change raises the rules version and is logged. Import a guideline document (.docx/.pdf/.txt) as draft rules. |
-| **Content intake** | Paste text, upload .docx / .pdf / .txt, attach an image (PNG/JPG/WebP). Channels: Instagram, influencer, ad, email, website, press release, document. Sample posts. |
-| **Text checks (code)** | Wrong brand/product names · banned phrases · result claims vs approved facts (including the timeframe) · superlatives · comparisons · numbers vs facts · prices vs the current price list (expired prices caught) · delivery terms · claims relying on unproven facts · offer end date + T&C · paid-post disclosure · confidential terms · tone (pushy phrases, "!!", emojis, ALL CAPS) · Hinglish in formal channels · vague link text · hashtags · long sentences |
+| **Content intake** | Paste text, upload .docx / .pdf / .txt, attach an image (PNG/JPG/WebP). Channels: Instagram, influencer, ad, email, website, press release, WhatsApp, LinkedIn, document. 16 sample posts. |
+| **Text checks (code)** | Wrong brand/product names · banned phrases · result claims vs approved facts (including the timeframe) · superlatives · comparisons · numbers vs facts · prices vs the current price list (expired prices caught) · delivery terms · claims relying on unproven facts · offer end date + T&C · paid-post disclosure (and disclosure hidden at the end) · personal phone numbers and emails · confidential terms · tone (pushy phrases, "!!", emojis, ALL CAPS) · Hinglish in formal channels · vague link text · hashtags · long sentences |
 | **Image checks** | Words read by OCR, contrast measured per line, brand colours (CIEDE2000), logo stretched / recoloured / too small / no clear space, missing alt text with a suggestion, image text checked like the caption |
 | **AI (optional, verified)** | Tone, messaging and claim review plus an intent card. The AI must cite a rule/fact ID and quote it; code verifies both, otherwise the finding becomes a grey advisory that can never block. Private data is masked in text and hidden in images first. Hosted AI or the company's own server. |
 | **Explain & fix** | Highlights in the text, severity, the rule/fact text, a suggested fix. Accept, edit & accept, accept all, or dismiss with a reason. Must-fix issues can only become exception requests that a reviewer approves. Decisions carry over to re-checks. |
@@ -105,7 +108,7 @@ All tests run from a fresh clone (no keys needed except where noted).
 
 | Test | Command | Result |
 |---|---|---|
-| Text checks, labelled set (13 posts, 37 issues) | `npm run eval` | 100% found, 100% correct. Written together with the rules, so optimistic. |
+| Text checks, labelled set (21 posts with images, 68 issues) | `npm run eval` | 100% found, 100% correct. Includes 8 new posts written for Round 3 by another tool from a list of planted mistakes; one false alarm they exposed ("my favourite" read as a ranking claim) was fixed. |
 | Text checks, held-out set (5 posts written later) | `npm run eval` | 8/9 found, 8/8 correct. Miss: "blocks 100% of UV rays" (left to the AI layer). |
 | Image colour + contrast (20 generated ads with planted errors, plus clean ones) | `npm run eval:images` | **18/20 planted errors caught, 0/20 false alarms** (the old estimate: 3 false alarms). Misses: a red and an orange background read as shades of the brand saffron. |
 | Logo checks (10 composited images) | `npm run eval:images` | **8/8 logo problems caught, 0/32 false alarms** |

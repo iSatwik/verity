@@ -244,7 +244,7 @@ export function runCodeChecks(canon: Canon, text: string, channel: string, locat
   }
 
   // 4. Superlatives
-  const supRe = /(?:\bindia'?s\s+)?(?:#\s?1|no\.\s?1\b|\bnumber one\b)(?:\s+[a-z][a-z-]*)?|(?:\bindia'?s\s+)?\b(?:best|most recommended|most trusted|favourite|favorite|leading|top-rated)\b/gi;
+  const supRe = /(?:\bindia'?s\s+)?(?:#\s?1|no\.\s?1\b|\bnumber one\b)(?:\s+[a-z][a-z-]*)?|(?:\bindia'?s\s+)?\b(?:best|most recommended|most trusted|leading|top-rated)\b|\b(?:india'?s|everyone'?s|the nation'?s|most)\s+(?:favourite|favorite)\b/gi;
   let sm: RegExpExecArray | null;
   while ((sm = supRe.exec(text))) {
     const start = sm.index, end = start + sm[0].length;
@@ -363,7 +363,16 @@ export function runCodeChecks(canon: Canon, text: string, channel: string, locat
 
   // 10. Paid-partnership disclosure
   const looksPaid = channel === "influencer" || (/@\w+/.test(text) && /use code|promo code|discount code/i.test(text));
-  if (location === "text" && looksPaid && !/#ad\b|#sponsored|paid partnership/i.test(text)) {
+  const discloseRe = /#ad\b|#sponsored|paid partnership/i;
+  const opening = text.trim().slice(0, 60);
+  if (location === "text" && looksPaid && discloseRe.test(text) && !discloseRe.test(opening)) {
+    // disclosed, but buried at the end where people won't see it before "more"
+    const m = text.match(discloseRe)!;
+    const first = text.trim().split(/\s+/)[0] ?? "";
+    const start = text.indexOf(first);
+    add({ category: "disclosure", severity: "major", title: "Paid post disclosed too late", message: `"${m[0]}" appears only later in the post. Influencer or partner posts must start with "#ad" or "Paid partnership", so people see it before tapping "more".`, quote: first, suggestion: `#ad ${first}`, sources: [ruleRef(canon, "D-01")], start, end: start + first.length });
+  }
+  if (location === "text" && looksPaid && !discloseRe.test(text)) {
     const first = text.trim().split(/\s+/)[0] ?? "";
     const start = text.indexOf(first);
     add({ category: "disclosure", severity: "blocker", title: "Paid post not disclosed", message: "Influencer or partner posts must start with \"#ad\" or \"Paid partnership\".", quote: first, suggestion: `#ad ${first}`, sources: [ruleRef(canon, "D-01")], start, end: start + first.length });
@@ -373,7 +382,7 @@ export function runCodeChecks(canon: Canon, text: string, channel: string, locat
   const PUSHY: [RegExp, string][] = [
     [/\bgrab it now\b/gi, "Try it today"], [/\bbuy now\b/gi, "Shop now"], [/\border now\b/gi, "Order today"],
     [/\bhurry\b[!,]?/gi, ""], [/\blast chance\b/gi, "Ends soon"], [/\bdon'?t miss (?:out|this)\b/gi, ""],
-    [/\bact fast\b/gi, ""], [/\blimited time only\b/gi, "For a limited time"], [/\bbefore it'?s gone\b/gi, ""],
+    [/\bact fast\b/gi, ""], [/\bjaldi karo\b[!,]?/gi, ""], [/\bstock khatam\b[!]*/gi, ""], [/\blimited time only\b/gi, "For a limited time"], [/\bbefore it'?s gone\b/gi, ""],
   ];
   for (const [re, rep] of PUSHY) {
     let m: RegExpExecArray | null;
@@ -414,12 +423,21 @@ export function runCodeChecks(canon: Canon, text: string, channel: string, locat
     }
   }
 
+  // 11b. Personal contact details in public content
+  if (channel !== "document") {
+    const re = /(?:\+91[\s-]?)?\b[6-9]\d{4}[\s-]?\d{5}\b|\b[\w.+-]+@(?:gmail|yahoo|hotmail|outlook|rediffmail)\.[a-z.]+\b/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) {
+      add({ category: "confidential", severity: ruleSeverity(canon, "CF-2", "major"), title: "Personal contact details", message: `"${m[0]}" looks like a personal phone number or email. Public content must use the brand's official support channel.`, quote: m[0], suggestion: "care@aranyanaturals.in", sources: [ruleRef(canon, "CF-2")], start: m.index, end: m.index + m[0].length });
+    }
+  }
+
   // 12. Hinglish outside Instagram
-  if (location === "text" && ["email", "press", "website", "document"].includes(channel)) {
+  if (location === "text" && ["email", "press", "website", "document", "linkedin"].includes(channel)) {
     const re = /\b(yaar|bahut|ekdum|kamaal|accha|achha|bindaas|jhakaas|arre|dekho)\b/gi;
     let m: RegExpExecArray | null;
     while ((m = re.exec(text))) {
-      add({ category: "tone", severity: ruleSeverity(canon, "V-07", "minor"), title: "Hinglish in a formal channel", message: `"${m[0]}" is fine on Instagram, but not in a ${channel === "press" ? "press release" : channel}.`, quote: m[0], suggestion: null, sources: [ruleRef(canon, "V-07")], start: m.index, end: m.index + m[0].length });
+      add({ category: "tone", severity: ruleSeverity(canon, "V-07", "minor"), title: "Hinglish in a formal channel", message: `"${m[0]}" is fine on Instagram or WhatsApp, but not in ${channel === "press" ? "a press release" : channel === "linkedin" ? "a LinkedIn post" : channel === "email" ? "an email" : `a ${channel}`}.`, quote: m[0], suggestion: null, sources: [ruleRef(canon, "V-07")], start: m.index, end: m.index + m[0].length });
     }
   }
 

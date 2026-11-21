@@ -15,6 +15,8 @@ export const CHANNELS: Record<string, string> = {
   email: "Email",
   website: "Website copy",
   press: "Press release",
+  whatsapp: "WhatsApp broadcast",
+  linkedin: "LinkedIn post",
   document: "Document",
 };
 
@@ -28,5 +30,7 @@ export const CHANNEL_GUIDE: Record<string, { what: string; checks: string[]; app
   email: { what: "A newsletter or promotional email.", checks: ["Formal channel: no Hinglish", "Clear link text, no “click here”", "Claims, prices and offers against facts"], approvers: "Brand manager (and compliance if it makes claims)" },
   website: { what: "Product page or other website text.", checks: ["Formal channel: no Hinglish", "Clear link text: no “click here” or “link in bio”", "Claims, prices and ingredient numbers against facts"], approvers: "Brand manager (and compliance if it makes claims)" },
   press: { what: "A news announcement for journalists.", checks: ["Formal: no Hinglish, no pushy tone", "Every number and claim against approved facts", "No confidential names (unreleased products)"], approvers: "Brand manager and compliance" },
+  whatsapp: { what: "A broadcast message to customers on WhatsApp.", checks: ["Hinglish is fine here", "No personal phone numbers or emails", "Prices and offers against approved facts"], approvers: "Brand manager (and compliance if it makes claims)" },
+  linkedin: { what: "A post on the brand's or an employee's LinkedIn.", checks: ["Formal: no Hinglish", "No confidential names (unreleased products, deals)", "Correct brand name"], approvers: "Brand manager" },
   document: { what: "A Word or PDF file, like a brochure or script.", checks: ["Formal: no Hinglish", "Claims, prices and numbers against facts", "No confidential names"], approvers: "Brand manager (and compliance if it makes claims)" },
 };

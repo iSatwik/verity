@@ -2,7 +2,7 @@ import { seedRuleHistoryWith } from "./rule-history";
 import "server-only";
 import { rawQ } from "./db";
 import { PRODUCTS, RULES, FACTS, TERMS, PALETTE, CONFIDENTIAL, SAMPLES } from "./seed-data";
-import { CREATIVE_S01 } from "./sample-images";
+import { CREATIVE_S01, CREATIVE_NEHA_ALOE, CREATIVE_NEHA_SUN } from "./sample-images";
 import { USERS } from "./users";
 import { createSubmission, runCheckFor, submitForReview, reviewDecision, acceptFix, findingsFor, getSubmission, type Q } from "./store";
 
@@ -33,7 +33,9 @@ export async function seedCanon() {
 
 /** A few submissions so judges land on a living workspace, not an empty one. No AI calls at seed time. */
 async function seedDemoSubmissions() {
-  const [rahul, ritika] = [USERS[0], USERS[1]];
+  const rahul = USERS.find((u) => u.id === "u_rahul")!;
+  const ritika = USERS.find((u) => u.id === "u_ritika")!;
+  const neha = USERS.find((u) => u.id === "u_neha")!;
   const s = (k: string) => SAMPLES.find((x) => x.key === k)!;
 
   // 1. Approved and locked (shows the end of the workflow)
@@ -57,6 +59,13 @@ async function seedDemoSubmissions() {
   // 4. The main demo post with its image: lots to fix
   const d = await createSubmission(q, rahul, { title: s("S-01").title, channel: s("S-01").channel, text: s("S-01").text, imageData: CREATIVE_S01, imageAlt: "", imageText: s("S-01").imageText });
   await runCheckFor(q, d, rahul, { ai: false });
+
+  // 5. Neha P. from a second agency (Glow Studio): her own two posts. Rahul can't see these, and she can't see his.
+  for (const [k, img] of [["S-09", CREATIVE_NEHA_ALOE], ["S-10", CREATIVE_NEHA_SUN]] as const) {
+    const x = s(k);
+    const id = await createSubmission(q, neha, { title: x.title.replace(" (Glow Studio)", ""), channel: x.channel, text: x.text, imageData: img, imageAlt: x.imageAlt ?? "", imageText: "" });
+    await runCheckFor(q, id, neha, { ai: false });
+  }
 }
 
 /** Wipe everything and start again (button on the About page). */

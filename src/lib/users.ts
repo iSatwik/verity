@@ -32,6 +32,18 @@ export const USERS: DemoUser[] = [
     oneLine: "Writes posts and fixes the issues Verity finds.",
   },
   {
+    id: "u_neha",
+    email: "neha@aranya.demo",
+    name: "Neha P.",
+    initials: "NP",
+    role: "creator",
+    roleLabel: "Content creator",
+    team: "Glow Studio (agency)",
+    color: "#c2255c",
+    canDo: ["Submit posts for Aranya Naturals", "Sees only her own work, not other agencies'", "Accept fixes and re-check", "Send for approval"],
+    oneLine: "Creator at a second agency. Can't see Rahul's work.",
+  },
+  {
     id: "u_ritika",
     email: "ritika@aranya.demo",
     name: "Ritika S.",

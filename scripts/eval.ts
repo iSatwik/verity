@@ -22,6 +22,15 @@ const K: Record<string, { expect: Exp[]; optional?: Exp[] }> = {
   "S-05": { expect: [["C-4.2", "best"], ["T-11", "clinically proven"], ["T-09", "100% safe"], ["F-01", "2019"], ["T-01", "Aranya Natural"], ["C-1.1", "lakhs"], ["V-07", "Yaar"]] },
   "S-06": { expect: [["CF-1", "Project Kesar"]] },
   "S-08": { expect: [["C-4.1", "Unlike other brands"], ["T-14", "repair damaged skin"]] },
+  // Round 3 samples. Labels come from the mistakes planted when the posts were written; text and image are checked separately.
+  "S-09": { expect: [["T-03", "Aloe Vera Gel"], ["T-08", "Heals"], ["C-1.2", "overnight"], ["T-03", "Aloe Vera Gel", "image"], ["T-08", "Heals", "image"], ["C-1.2", "overnight", "image"]] },
+  "S-10": { expect: [["C-4.2", "#1"], ["C-4.1", "Unlike other brands"], ["C-4.2", "#1", "image"], ["C-4.1", "Unlike other brands", "image"]] },
+  "S-11": { expect: [["D-01", "Your"], ["T-04", "Haldi Serum"], ["C-1.2", "7 days"], ["T-04", "Haldi Serum", "image"], ["C-1.2", "7 days", "image"]] },
+  "S-12": { expect: [["F-20", "₹299"], ["V-02", "Jaldi karo"], ["V-02", "stock khatam"], ["V-02", "!!"], ["CF-2", "98765 43210"]] },
+  "S-13": { expect: [["CF-1", "Project Kesar"], ["T-01", "Aranya Natural"], ["V-07", "bahut"]] },
+  "S-14": { expect: [["F-24", "25% Off"], ["F-24", "25% off"], ["F-20", "₹299"], ["V-02", "LAST CHANCE"], ["V-02", "!!"], ["C-5.2", "25% Off"]] },
+  "S-15": { expect: [] },
+  "S-16": { expect: [["F-26", "100% recyclable"], ["F-26", "100% recyclable", "image"]] },
 };
 
 (async () => {
