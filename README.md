@@ -29,7 +29,7 @@ Verity checks content **before it is published** (a social post, an ad, an email
 5. Open the menu at the top right and switch to **Arjun V.**, then click **Approve**. Then switch to **Ritika S.** and click **Approve**. The version is locked with a SHA-256 review record.
 6. Switch to **Satwik (Brand admin)** and open **Rule health**. Three rules people keep pushing back on are flagged, each with a suggested clearer wording you can review and apply.
 7. Switch to **Neha P.** (a creator at another agency). She sees only her two posts, not Rahul's. Opening one of Rahul's links as Neha gives "not found", because the database itself hides it.
-8. Try **New submission → load a sample**. There are 16 samples, including a reel script, a Hinglish WhatsApp broadcast, a LinkedIn hiring post and a clean post that passes.
+8. Try **New submission → load a sample**. There are 15 samples, including a reel script, a Hinglish WhatsApp broadcast, a LinkedIn hiring post and a clean post that passes.
 
 ## What's new in Round 3
 
@@ -91,7 +91,7 @@ Verity checks content **before it is published** (a social post, an ad, an email
 |---|---|
 | **Accounts** | Email + password sign-in, signed sessions, lock-out, sign out, one-click demo people, access limits enforced in Postgres |
 | **Brand rules** | Rules (voice, messaging, claims, visual, accessibility, disclosure), approved facts with source, owner, valid-from/until and status, terminology (brand/product names, banned and preferred words), colour palette, confidential terms. Admin add/edit/delete; every change raises the rules version and is logged. Import a guideline document (.docx/.pdf/.txt) as draft rules. |
-| **Content intake** | Paste text, upload .docx / .pdf / .txt, attach an image (PNG/JPG/WebP). Channels: Instagram, influencer, ad, email, website, press release, WhatsApp, LinkedIn, document. 16 sample posts. |
+| **Content intake** | Paste text, upload .docx / .pdf / .txt, attach an image (PNG/JPG/WebP). Channels: Instagram, influencer, ad, email, website, press release, WhatsApp, LinkedIn, document. 15 sample posts. |
 | **Text checks (code)** | Wrong brand/product names · banned phrases · result claims vs approved facts (including the timeframe) · superlatives · comparisons · numbers vs facts · prices vs the current price list (expired prices caught) · delivery terms · claims relying on unproven facts · offer end date + T&C · paid-post disclosure (and disclosure hidden at the end) · personal phone numbers and emails · confidential terms · tone (pushy phrases, "!!", emojis, ALL CAPS) · Hinglish in formal channels · vague link text · hashtags · long sentences |
 | **Image checks** | Words read by OCR, contrast measured per line, brand colours (CIEDE2000), logo stretched / recoloured / too small / no clear space, missing alt text with a suggestion, image text checked like the caption |
 | **AI (optional, verified)** | Tone, messaging and claim review plus an intent card. The AI must cite a rule/fact ID and quote it; code verifies both, otherwise the finding becomes a grey advisory that can never block. Private data is masked in text and hidden in images first. Hosted AI or the company's own server. |
