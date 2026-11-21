@@ -15,7 +15,7 @@ export default async function NewSubmission() {
       {me.role !== "creator" && me.role !== "admin" && (
         <p className="rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-900">You&apos;re signed in as {me.name} ({me.roleLabel}). Anyone can try a check, but in a real team creators submit and you review.</p>
       )}
-      <NewSubmissionForm samples={SAMPLES.map((s) => ({ key: s.key, title: s.title, channel: s.channel, text: s.text, image: s.image ?? null, imageText: s.imageText ?? "", hint: s.hint }))} />
+      <NewSubmissionForm samples={SAMPLES.map((s) => ({ key: s.key, title: s.title, channel: s.channel, text: s.text, image: s.image ?? null, imageText: s.imageText ?? "", imageAlt: s.imageAlt ?? "", hint: s.hint }))} />
     </div>
   );
 }

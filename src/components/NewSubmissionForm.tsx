@@ -5,7 +5,7 @@ import { createAndCheck, extractFileText, type ActionResult } from "@/app/action
 import { CHANNELS, CHANNEL_GUIDE } from "@/lib/labels";
 import { Card, Label } from "./ui";
 
-interface Sample { key: string; title: string; channel: string; text: string; image: string | null; imageText: string; hint: string }
+interface Sample { key: string; title: string; channel: string; text: string; image: string | null; imageText: string; imageAlt?: string; hint: string }
 
 async function fileToDataUrl(file: Blob, maxSide = 1200): Promise<string> {
   const url = URL.createObjectURL(file);
@@ -33,7 +33,7 @@ export function NewSubmissionForm({ samples }: { samples: Sample[] }) {
   const imgRef = useRef<HTMLInputElement>(null);
 
   async function loadSample(s: Sample) {
-    setTitle(s.title); setChannel(s.channel); setText(s.text); setImageText(s.imageText); setImageAlt(""); setFileMsg(null);
+    setTitle(s.title); setChannel(s.channel); setText(s.text); setImageText(s.imageText); setImageAlt(s.imageAlt ?? ""); setFileMsg(null);
     if (s.image) {
       const blob = await (await fetch(s.image)).blob();
       setImage(await fileToDataUrl(blob));
