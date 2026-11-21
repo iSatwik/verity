@@ -55,12 +55,11 @@ export function RoleGate({ users, demo, demoPassword }: { users: DemoUser[]; dem
               >
                 <Avatar initials={u.initials} color={u.color} size={36} />
                 <span className="min-w-0">
-                  <span className="block text-[15px] font-semibold text-gray-900">{u.name}</span>
+                  <span className="flex flex-wrap items-center gap-x-2 text-[15px] font-semibold text-gray-900">{u.name}{i === 0 && <span className="rounded bg-brand-50 px-1.5 py-0.5 text-[11px] font-medium text-brand-700">Start here</span>}</span>
                   <span className="block text-[13px] text-gray-500">{u.roleLabel}</span>
                   <span className="block truncate text-[12px] text-gray-400">{u.email}</span>
                   <span className="mt-1.5 block text-[13px] leading-snug text-gray-700">{u.oneLine}</span>
                 </span>
-                {i === 0 && <span className="absolute right-3 top-3 rounded bg-brand-50 px-1.5 py-0.5 text-[11px] font-medium text-brand-700">Start here</span>}
                 {busy === u.id && <span className="absolute bottom-3 right-3 h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />}
               </button>
             ))}

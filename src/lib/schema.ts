@@ -202,7 +202,8 @@ const REVIEWER = "verity_role() IN ('manager','compliance','admin')";
 
 export const RLS_SQL: string[] = [
   `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'verity_app') THEN CREATE ROLE verity_app NOLOGIN NOBYPASSRLS; END IF; END $$`,
-  `GRANT verity_app TO CURRENT_USER`,
+  // grant only when missing: on hosted Postgres a second GRANT can be refused
+  `DO $$ BEGIN IF NOT pg_has_role(current_user, 'verity_app', 'MEMBER') THEN EXECUTE 'GRANT verity_app TO ' || quote_ident(current_user); END IF; END $$`,
   `GRANT USAGE ON SCHEMA public TO verity_app`,
   `GRANT SELECT, INSERT, UPDATE, DELETE ON ${ALL.join(", ")} TO verity_app`,
   `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO verity_app`,
