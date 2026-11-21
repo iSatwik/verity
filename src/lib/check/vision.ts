@@ -173,19 +173,26 @@ export function logoFindings(rep: LogoReport, ruleText: string): Finding[] {
 }
 
 // ---------- privacy ----------
-/** Finds private words (personal data, confidential terms) in the OCR text and returns their boxes. */
+/**
+ * Finds private text (personal data, confidential terms) in the OCR lines and returns boxes to hide.
+ * We hide the whole line, not just the matched words, because OCR can misread or drop a word
+ * (e.g. a currency sign or one digit group) and a partly hidden secret is still a leak.
+ * A line also counts as private when it holds 2+ consecutive words of a confidential phrase,
+ * or 8+ digits (phone, card, ID numbers that OCR may have split oddly).
+ */
 export function privateBoxes(lines: OcrLine[], canon: Canon): { boxes: Box[]; count: number } {
   const boxes: Box[] = [];
   let count = 0;
+  const norm = (x: string) => x.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
+  const phrases = (canon.confidential ?? []).map((c) => norm(c.phrase).split(" ").filter((w) => w.length > 1));
   for (const l of lines) {
     const red = redact(l.text, canon);
-    if (!red.count) continue;
-    count += red.count;
-    const secrets = Object.values(red.map).map((v) => v.toLowerCase());
-    for (const w of l.words) {
-      const t = w.text.toLowerCase().replace(/[^\p{L}\p{N}@.+₹-]/gu, "");
-      if (t.length >= 2 && secrets.some((s) => s.includes(t))) boxes.push(w.bbox);
-    }
+    const text = ` ${norm(l.text)} `;
+    const partial = phrases.some((ws) => ws.length >= 2 && ws.some((w, i) => i < ws.length - 1 && text.includes(` ${w} ${ws[i + 1]} `)));
+    const digits = (l.text.match(/\d/g) ?? []).length >= 8;
+    if (!red.count && !partial && !digits) continue;
+    count += Math.max(1, red.count);
+    boxes.push(l.bbox);
   }
   return { boxes, count };
 }
@@ -198,7 +205,9 @@ export async function blurBoxes(buf: Buffer, width: number, height: number, boxe
   const overlays = await Promise.all(boxes.map(async (b) => {
     const left = Math.max(0, Math.floor(b.x0 - 4)), top = Math.max(0, Math.floor(b.y0 - 4));
     const w = Math.min(width - left, Math.ceil(b.x1 - b.x0 + 8)), h = Math.min(height - top, Math.ceil(b.y1 - b.y0 + 8));
-    const input = await sharp(src).extract({ left, top, width: Math.max(1, w), height: Math.max(1, h) }).resize(4, 4).resize(Math.max(1, w), Math.max(1, h), { kernel: "nearest" }).toBuffer();
+    // two separate steps: sharp keeps only the last resize() in one pipeline
+    const tiny = await sharp(src).extract({ left, top, width: Math.max(1, w), height: Math.max(1, h) }).resize(Math.max(1, Math.round(w / 24)), 2, { fit: "fill" }).toBuffer();
+    const input = await sharp(tiny).resize(Math.max(1, w), Math.max(1, h), { kernel: "nearest", fit: "fill" }).png().toBuffer();
     return { input, left, top };
   }));
   return sharp(src).composite(overlays).jpeg({ quality: 85 }).toBuffer();

@@ -14,7 +14,8 @@
     "eval:images": "tsx scripts/eval-images.ts",
     "eval:rules": "tsx scripts/eval-rule-health.ts",
     "test:access": "tsx scripts/test-access.ts",
-    "test:company-ai": "tsx scripts/test-company-ai.ts"
+    "test:company-ai": "tsx scripts/test-company-ai.ts",
+    "eval:image-privacy": "tsx scripts/eval-image-privacy.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
