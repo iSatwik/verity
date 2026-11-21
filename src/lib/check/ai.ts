@@ -63,7 +63,7 @@ function aiJSON(parts: Part[], log: (l: AiLog) => void, purpose: string, redacte
   return aiProvider() === "company" ? companyJSON(parts, log, purpose, redactedInput) : geminiJSON(parts, log, purpose, redactedInput);
 }
 
-const MODELS = (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : []).concat(["gemini-3.5-flash", "gemini-3.5-flash-lite"]);
+const MODELS = (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : []).concat(["gemini-3.5-flash-lite", "gemini-3.5-flash"]);
 
 async function geminiJSON(parts: Part[], log: (l: AiLog) => void, purpose: string, redactedInput: string): Promise<{ data: unknown; model: string } | null> {
   const key = process.env.GEMINI_API_KEY as string;
@@ -79,7 +79,7 @@ async function geminiJSON(parts: Part[], log: (l: AiLog) => void, purpose: strin
           contents: [{ role: "user", parts }],
           generationConfig: { temperature: 0, responseMimeType: "application/json", ...(thinking ? { thinkingConfig: { thinkingLevel: "LOW" } } : {}) },
         }),
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(15000),
       });
       let res = await send(true);
       if (res.status === 400) res = await send(false); // a model without thinking levels

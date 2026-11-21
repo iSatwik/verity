@@ -27,6 +27,13 @@ export async function runPipeline(canon: Canon, input: CheckInput, log: (l: AiLo
   let suggestedAlt: string | null = null;
   let detected: string | null = null;
   let aiModel: string | null = null;
+  // The AI text review only needs the caption and the caption's code findings, so it starts now
+  // and runs while the image is read and checked (the two AI calls overlap).
+  const red = redact(text, canon);
+  const reviewPromise = !useAi ? Promise.resolve({ findings: [] as Finding[], model: null as string | null, intent: undefined }) : aiReview({ maskedText: red.masked, originalText: text, map: red.map, channel: input.channel, canon, already: findings.filter((f) => f.location !== "image"), log }).catch((e) => {
+    notes.push(`AI check failed: ${(e as Error).message}`);
+    return { findings: [] as Finding[], model: null as string | null, intent: undefined };
+  });
   let ocr: OcrResult | null = null;
   let blurred = 0;
   let logoBox: Box | null = null;
@@ -71,12 +78,8 @@ export async function runPipeline(canon: Canon, input: CheckInput, log: (l: AiLo
   }
 
   // 3. AI review on masked text
-  const red = redact(text, canon);
   if (red.count) notes.push(`${red.count} item(s) masked before the AI check.`);
-  const ai = !useAi ? { findings: [] as Finding[], model: null as string | null, intent: undefined } : await aiReview({ maskedText: red.masked, originalText: text, map: red.map, channel: input.channel, canon, already: findings.filter((f) => f.location !== "image"), log }).catch((e) => {
-    notes.push(`AI check failed: ${(e as Error).message}`);
-    return { findings: [] as Finding[], model: null as string | null, intent: undefined };
-  });
+  const ai = await reviewPromise;
   if (ai.model) aiModel = ai.model;
   findings.push(...ai.findings);
 
