@@ -203,7 +203,8 @@ const REVIEWER = "verity_role() IN ('manager','compliance','admin')";
 export const RLS_SQL: string[] = [
   // verity_rls: a no-login role that cannot bypass RLS. Each user query switches to it for one transaction.
   // (On a managed database where the app user cannot create roles, create it once as an admin:
-  //  CREATE ROLE verity_rls NOLOGIN NOBYPASSRLS; GRANT verity_rls TO <app user>;)
+  //  CREATE ROLE verity_rls NOLOGIN NOBYPASSRLS; GRANT verity_rls TO <app user>;
+  //  GRANT USAGE ON SCHEMA <app schema> TO verity_rls;  -- needed if the app user doesn't own the schema)
   `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'verity_rls') THEN CREATE ROLE verity_rls NOLOGIN NOBYPASSRLS; END IF; END $$`,
   `DO $$ BEGIN IF NOT pg_has_role(current_user, 'verity_rls', 'MEMBER') THEN EXECUTE 'GRANT verity_rls TO ' || quote_ident(current_user); END IF; END $$`,
   `DO $$ BEGIN EXECUTE format('GRANT USAGE ON SCHEMA %I TO verity_rls', current_schema()); EXECUTE format('GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA %I TO verity_rls', current_schema()); END $$`,
