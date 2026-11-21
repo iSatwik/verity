@@ -43,8 +43,14 @@ export interface ImageReport {
   width: number;
   height: number;
   colours: { hex: string; share: number; nearest?: string; nearestHex?: string; deltaE?: number; onBrand: boolean }[];
-  contrast?: { fg: string; bg: string; ratio: number };
-  textSource?: "ai" | "creator";
+  contrast?: { fg: string; bg: string; ratio: number; measured?: boolean };
+  textSource?: "ai" | "creator" | "ocr";
+  /** Round 3: contrast measured inside each line of text found by OCR. */
+  textBoxes?: { text: string; fg: string; bg: string; ratio: number; needed: number; large: boolean }[];
+  /** Round 3: logo found in the image and what is wrong with it. */
+  logo?: { found: boolean; aspect?: number; widthShare?: number; colourDelta?: number; problems: string[] } | null;
+  /** Round 3: private words blurred before the image went to the AI. */
+  blurred?: number;
 }
 
 export interface CheckInput {

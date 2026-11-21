@@ -157,7 +157,8 @@ export async function aiReview(opts: {
   return { intent, findings: fresh, model };
 }
 
-export async function aiDescribeImage(dataUrl: string, log: (l: AiLog) => void): Promise<{ text_in_image?: string; alt_text?: string; model: string } | null> {
+export interface VisionAnswer { text_in_image?: string; alt_text?: string; logo?: { present?: boolean; box_2d?: number[] }; model: string }
+export async function aiDescribeImage(dataUrl: string, log: (l: AiLog) => void): Promise<VisionAnswer | null> {
   const provider = aiProvider();
   if (provider === "none") return null;
   if (provider === "mock") {
@@ -168,13 +169,13 @@ export async function aiDescribeImage(dataUrl: string, log: (l: AiLog) => void):
   if (!m) return null;
   const r = await geminiJSON(
     [
-      { text: 'Read this marketing image. Return JSON only: {"text_in_image": "all text visible in the image, in reading order", "alt_text": "one-sentence alt text describing the product and any text in the image"}' },
+      { text: 'Read this marketing image. Return JSON only: {"text_in_image": "all text visible in the image, in reading order (skip blurred areas)", "alt_text": "one-sentence alt text describing the product and any text in the image", "logo": {"present": true or false, "box_2d": [ymin, xmin, ymax, xmax]}}. "logo" is the brand logo of Aranya Naturals: two green leaves inside a green circle, printed as a mark on the image (not on the product label and not real leaves). box_2d is in 0-1000 coordinates of the whole image. If there is no such logo, set present to false.' },
       { inline_data: { mime_type: m[1], data: m[2] } },
     ],
     log, "image", "[image]",
   );
   if (!r) return null;
-  const d = r.data as { text_in_image?: string; alt_text?: string };
+  const d = r.data as Omit<VisionAnswer, "model">;
   return { ...d, model: r.model };
 }
 

@@ -383,7 +383,7 @@ function ImageSection({ data }: { data: WorkspaceData }) {
         <img src={sub.image_data!} alt={sub.image_alt || "Uploaded image (no alt text yet)"} className="w-full rounded-md border border-gray-200" />
         <dl className="space-y-3 text-[13px]">
           <div><dt className="text-gray-500">Alt text</dt><dd className="mt-0.5 text-gray-900">{sub.image_alt || <span className="text-amber-700">Missing</span>}</dd></div>
-          <div><dt className="text-gray-500">Words in the image{rep?.textSource === "ai" ? " (read by AI)" : ""}</dt><dd className="mt-0.5 text-gray-900">{sub.image_text || <span className="text-gray-400">None</span>}</dd></div>
+          <div><dt className="text-gray-500">Words in the image{rep?.textSource === "ai" ? " (read by AI)" : rep?.textSource === "ocr" ? " (read on our server, no AI)" : ""}</dt><dd className="mt-0.5 text-gray-900">{sub.image_text || <span className="text-gray-400">None</span>}</dd></div>
           {colours.length > 0 && (
             <div>
               <dt className="text-gray-500">Main colours</dt>
@@ -400,9 +400,26 @@ function ImageSection({ data }: { data: WorkspaceData }) {
               </dd>
             </div>
           )}
-          {rep?.contrast && (
+          {rep?.textBoxes && rep.textBoxes.length > 0 ? (
+            <div>
+              <dt className="text-gray-500">Text contrast (measured on each line)</dt>
+              <dd className="mt-1 space-y-1">
+                {rep.textBoxes.slice(0, 6).map((b, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[13px]">
+                    <span className="inline-flex h-5 shrink-0 items-center rounded px-1.5 text-[11px] font-semibold" style={{ background: b.bg, color: b.fg }}>Aa</span>
+                    <span className="min-w-0 flex-1 truncate text-gray-700">{b.text}</span>
+                    <span className={`shrink-0 ${b.ratio < b.needed ? "font-medium text-red-700" : "text-gray-500"}`}>{b.ratio} : 1{b.ratio < b.needed ? ` (needs ${b.needed})` : " ✓"}</span>
+                  </div>
+                ))}
+              </dd>
+            </div>
+          ) : rep?.contrast && (
             <div><dt className="text-gray-500">Text contrast (estimated)</dt><dd className="mt-0.5"><span className={rep.contrast.ratio < 4.5 ? "font-medium text-red-700" : "font-medium text-gray-900"}>{rep.contrast.ratio} : 1</span> <span className="text-gray-400">· needs at least 4.5 : 1</span></dd></div>
           )}
+          {rep?.logo && (
+            <div><dt className="text-gray-500">Logo</dt><dd className="mt-0.5">{!rep.logo.found ? <span className="text-gray-500">No logo found in the image</span> : rep.logo.problems.length ? <span className="font-medium text-red-700">Found: {rep.logo.problems.join(", ")}</span> : <span className="text-gray-900">Found and used correctly ✓</span>}</dd></div>
+          )}
+          {rep?.blurred ? <div><dt className="text-gray-500">Privacy</dt><dd className="mt-0.5 text-gray-900">{rep.blurred} private word{rep.blurred > 1 ? "s were" : " was"} blurred before the image went to the AI</dd></div> : null}
         </dl>
       </div>
     </Section>

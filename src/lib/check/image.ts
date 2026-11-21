@@ -4,7 +4,7 @@ import type { Canon } from "../canon";
 import type { Finding, ImageReport } from "./types";
 import { analysePixels } from "./image-core";
 
-export async function analyseImage(dataUrl: string, canon: Canon, opts: { hasText: boolean; altText: string | null | undefined; suggestedAlt?: string | null }): Promise<{ report: ImageReport | null; findings: Finding[] }> {
+export async function analyseImage(dataUrl: string, canon: Canon, opts: { hasText: boolean; altText: string | null | undefined; suggestedAlt?: string | null; measured?: import("./image-core").MeasuredLine[] }): Promise<{ report: ImageReport | null; findings: Finding[] }> {
   const m = dataUrl.match(/^data:image\/[a-z+]+;base64,(.+)$/);
   if (!m) return { report: null, findings: [] };
   const img = sharp(Buffer.from(m[1], "base64"));

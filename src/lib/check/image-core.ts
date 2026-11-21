@@ -35,7 +35,8 @@ function kmeans(pixels: RGB[], k: number, iters = 10): { c: RGB; n: number }[] {
 const hexOf = (c: RGB) => formatHex({ mode: "rgb", r: c[0] / 255, g: c[1] / 255, b: c[2] / 255 });
 
 /** Works on raw pixels, so the same code runs on the server (sharp) and in a browser (canvas). */
-export function analysePixels(data: ArrayLike<number>, channels: number, size: { width: number; height: number }, canon: Canon, opts: { hasText: boolean; altText: string | null | undefined; suggestedAlt?: string | null }): { report: ImageReport | null; findings: Finding[] } {
+export interface MeasuredLine { text: string; fg: string; bg: string; ratio: number; needed: number; large: boolean }
+export function analysePixels(data: ArrayLike<number>, channels: number, size: { width: number; height: number }, canon: Canon, opts: { hasText: boolean; altText: string | null | undefined; suggestedAlt?: string | null; measured?: MeasuredLine[] }): { report: ImageReport | null; findings: Finding[] } {
   const pixels: RGB[] = [];
   for (let i = 0; i < data.length; i += channels) pixels.push([data[i], data[i + 1], data[i + 2]]);
   const total = pixels.length;
@@ -93,7 +94,21 @@ export function analysePixels(data: ArrayLike<number>, channels: number, size: {
 
   // Estimated contrast: background = largest colour; likely text colours = light or dark neutrals.
   let contrast: ImageReport["contrast"];
-  if (opts.hasText && colours.length > 1) {
+  const vi4 = [{ id: "VI-4", kind: "rule" as const, text: canon.rules.find((r) => r.id === "VI-4")?.body ?? "" }, { id: "WCAG 1.4.3", kind: "wcag" as const, text: "Contrast (Minimum): at least 4.5:1 for normal text, 3:1 for large text." }];
+  if (opts.measured && opts.measured.length) {
+    // Measured per line of text (OCR boxes): exact, and it names the line that fails.
+    const bad = opts.measured.filter((m) => m.ratio < m.needed).sort((a, b) => a.ratio / a.needed - b.ratio / b.needed);
+    const worst = [...opts.measured].sort((a, b) => a.ratio / a.needed - b.ratio / b.needed)[0];
+    contrast = { fg: worst.fg, bg: worst.bg, ratio: worst.ratio, measured: true };
+    for (const m of bad.slice(0, 3)) {
+      findings.push({
+        location: "image", category: "visual", severity: "blocker", method: "code",
+        title: "Text on the image is hard to read",
+        message: `"${m.text.length > 50 ? m.text.slice(0, 50) + "…" : m.text}" is ${colourName(m.fg)} on ${colourName(m.bg)}: ${m.ratio} : 1, measured inside the text. ${m.large ? "Large text" : "Text this size"} needs at least ${m.needed} : 1. Use dark Ink text on Cream, or Cream text on Forest.`,
+        quote: m.text, suggestion: null, sources: vi4,
+      });
+    }
+  } else if (opts.hasText && colours.length > 1) {
     const bg = colours[0];
     const candidates = colours.slice(1).filter((c) => c.share >= 0.015 && c.share < 0.45);
     // Text is a light or dark neutral that stands apart from the background; shadows of the background's own colour are not text.
