@@ -12,8 +12,11 @@ import { SCHEMA_SQL, RLS_SQL } from "./schema";
 type Row = Record<string, unknown>;
 /** Who a query runs as. "system" = the app itself (schema, seeding, sign-in), not limited by RLS. */
 export type Actor = { kind: "system" } | { kind: "user"; role: string; uid: string };
+type Run = (text: string, params?: unknown[]) => Promise<Row[]>;
 interface Driver {
   query<T = Row>(text: string, params?: unknown[], actor?: Actor): Promise<T[]>;
+  /** One transaction as this person, for a whole action (one round trip per query instead of four). */
+  transaction<T>(actor: Actor & { kind: "user" }, fn: (run: Run) => Promise<T>): Promise<T>;
 }
 const SYSTEM: Actor = { kind: "system" };
 const ANON: Actor = { kind: "user", role: "anon", uid: "" };
@@ -48,6 +51,16 @@ async function createDriver(): Promise<Driver> {
         chain = run.catch(() => undefined);
         return run as unknown as Promise<T[]>;
       },
+      transaction<T>(actor: Actor & { kind: "user" }, fn: (run: Run) => Promise<T>) {
+        const run = chain.then(() =>
+          sql.begin(async (tx) => {
+            await tx.unsafe(SET_ACTOR, [actor.role, actor.uid]);
+            return fn((text, params = []) => tx.unsafe(text.replace(/(\$\d+)::jsonb/g, "$1::text::jsonb"), params as never[]) as unknown as Promise<Row[]>);
+          }),
+        );
+        chain = run.catch(() => undefined);
+        return run as Promise<T>;
+      },
     };
   }
   const { PGlite } = await import("@electric-sql/pglite");
@@ -60,6 +73,12 @@ async function createDriver(): Promise<Driver> {
       return db.transaction(async (tx) => {
         await tx.query(SET_ACTOR, [actor.role, actor.uid]);
         return (await tx.query(text, params)).rows as T[];
+      });
+    },
+    transaction<T>(actor: Actor & { kind: "user" }, fn: (run: Run) => Promise<T>) {
+      return db.transaction(async (tx) => {
+        await tx.query(SET_ACTOR, [actor.role, actor.uid]);
+        return fn(async (text, params = []) => (await tx.query(text, params)).rows as Row[]);
       });
     },
   };
@@ -90,8 +109,10 @@ async function ready(): Promise<void> {
 }
 
 const systemScope = new AsyncLocalStorage<true>();
+const txScope = new AsyncLocalStorage<Run>();
 /** Run `fn` as the app itself (seeding, reset, sign-in). Only call after checking permissions in code. */
 export function asSystem<T>(fn: () => Promise<T>): Promise<T> {
+  if (txScope.getStore()) throw new Error("asSystem() can't run inside a user transaction");
   return systemScope.run(true, fn);
 }
 
@@ -112,8 +133,23 @@ async function currentActor(): Promise<Actor> {
   }
 }
 
+/**
+ * Run a whole action in one transaction as the signed-in person: faster (the role is set once),
+ * and all-or-nothing (if anything fails, nothing is saved).
+ */
+export async function withUserTx<T>(fn: () => Promise<T>): Promise<T> {
+  if (txScope.getStore() || systemScope.getStore()) return fn();
+  await ready();
+  const actor = await currentActor();
+  if (actor.kind !== "user") return fn();
+  const d = await driver();
+  return d.transaction(actor, (run) => txScope.run(run, fn));
+}
+
 /** Run a query as the signed-in person (database access limits apply), after making sure the schema and demo data exist. */
 export async function q<T = Row>(text: string, params: unknown[] = []): Promise<T[]> {
+  const tx = txScope.getStore();
+  if (tx && !systemScope.getStore()) return (await tx(text, params)) as T[];
   await ready();
   const d = await driver();
   return d.query<T>(text, params, await currentActor());

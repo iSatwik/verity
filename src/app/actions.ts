@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { q, q1, asSystem } from "@/lib/db";
+import { q, q1, asSystem, withUserTx } from "@/lib/db";
 import { requireUser, SESSION_COOKIE } from "@/lib/session";
 import { USERS, DEMO_PASSWORD, demoSignInEnabled } from "@/lib/users";
 import { signSession, verifyPassword, lockedOut, noteFailure, clearFailures } from "@/lib/auth";
@@ -13,7 +13,7 @@ export type ActionResult = { ok: true; message?: string } | { ok: false; error: 
 
 async function wrap(fn: () => Promise<void | string>, paths: string[] = []): Promise<ActionResult> {
   try {
-    const message = await fn();
+    const message = await withUserTx(fn);
     for (const p of paths) revalidatePath(p);
     revalidatePath("/", "layout");
     return { ok: true, message: message || undefined };
@@ -261,13 +261,17 @@ export async function importGuidelineAction(form: FormData): Promise<ActionResul
 }
 
 export async function resetDemoAction(): Promise<ActionResult> {
-  return wrap(async () => {
+  // not inside wrap(): the reset runs as the system, outside any user transaction
+  try {
     const u = await requireUser();
     if (u.role !== "admin") throw new Error("Only the brand admin can reset the demo data. Sign in as Satwik (Brand admin).");
     const { resetDemo } = await import("@/lib/seed");
     await asSystem(resetDemo);
-    return "Demo data reset.";
-  }, ["/"]);
+    revalidatePath("/", "layout");
+    return { ok: true, message: "Demo data reset." };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message || "Something went wrong." };
+  }
 }
 
 // ---------- Round 3: Rule health ----------
