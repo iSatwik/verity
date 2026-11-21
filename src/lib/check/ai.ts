@@ -63,7 +63,7 @@ function aiJSON(parts: Part[], log: (l: AiLog) => void, purpose: string, redacte
   return aiProvider() === "company" ? companyJSON(parts, log, purpose, redactedInput) : geminiJSON(parts, log, purpose, redactedInput);
 }
 
-const MODELS = (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : []).concat(["gemini-3.5-flash", "gemini-2.5-flash"]);
+const MODELS = (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : []).concat(["gemini-3.5-flash", "gemini-3.5-flash-lite"]);
 
 async function geminiJSON(parts: Part[], log: (l: AiLog) => void, purpose: string, redactedInput: string): Promise<{ data: unknown; model: string } | null> {
   const key = process.env.GEMINI_API_KEY as string;
@@ -71,15 +71,18 @@ async function geminiJSON(parts: Part[], log: (l: AiLog) => void, purpose: strin
   for (const model of MODELS) {
     const t0 = Date.now();
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      // Low thinking: these are short, well-defined checks, and full thinking made a check take 20+ seconds.
+      const send = (thinking: boolean) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-goog-api-key": key },
         body: JSON.stringify({
           contents: [{ role: "user", parts }],
-          generationConfig: { temperature: 0, responseMimeType: "application/json" },
+          generationConfig: { temperature: 0, responseMimeType: "application/json", ...(thinking ? { thinkingConfig: { thinkingLevel: "LOW" } } : {}) },
         }),
-        signal: AbortSignal.timeout(25000),
+        signal: AbortSignal.timeout(20000),
       });
+      let res = await send(true);
+      if (res.status === 400) res = await send(false); // a model without thinking levels
       if (res.status === 404) { lastErr = `${model}: not found`; continue; }
       if (!res.ok) throw new Error(`${res.status} ${(await res.text()).slice(0, 200)}`);
       const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
