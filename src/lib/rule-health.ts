@@ -56,8 +56,9 @@ export function draftRewrite(rule: { id: string; body: string; do_example?: stri
   const allowed = uniq(pushed.map((x) => x.quote!)).slice(0, 2);
   const base = rule.body.replace(/\s+$/, "").replace(/\.?$/, ".");
   const lines = [base];
-  if (dont.length) lines.push(`This rule is broken by wording like: ${dont.map((q) => `"${q}"`).join(", ")}.`);
-  if (allowed.length) lines.push(`This is fine and should not be flagged: ${allowed.map((q) => `"${q}"`).join(", ")}.`);
+  const clean = (q: string) => `"${q.trim().replace(/[\s,.;:!?]+$/, "")}"`;
+  if (dont.length) lines.push(`This rule is broken by wording like: ${dont.map(clean).join(", ")}.`);
+  if (allowed.length) lines.push(`This is fine and should not be flagged: ${allowed.map(clean).join(", ")}.`);
   return {
     body: lines.join(" "),
     do_example: dos.length ? dos.join(" / ") : rule.do_example ?? "",

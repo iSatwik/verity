@@ -27,7 +27,7 @@ Verity checks content **before it is published** (a social post, an ad, an email
 4. Click **Accept all … suggestions**, then **Edit → Use the designer's corrected image (demo) → Save**, then **Check again**. Then click **Submit for review**. The post has claims, so it needs the brand manager **and** compliance.
 5. Open the menu at the top right and switch to **Arjun V.**, then click **Approve**. Then switch to **Ritika S.** and click **Approve**. The version is locked with a SHA-256 review record.
 6. Switch to **Satwik (Brand admin)** and open **Rule health**. Three rules people keep pushing back on are flagged, each with a suggested clearer wording you can review and apply.
-7. As Rahul, open **Submissions**. You only see your own work, because the database itself enforces this.
+7. Open the menu at the top right and **Sign out**. Every page now asks you to sign in. Creators can only ever see their own submissions; the database enforces this (see `npm run test:access`).
 
 ## What's new in Round 3
 
