@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 import Link from "next/link";
 import "./globals.css";
 import { currentUser, hasChosenRole } from "@/lib/session";
-import { USERS } from "@/lib/users";
+import { USERS, DEMO_PASSWORD, demoSignInEnabled } from "@/lib/users";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { NavLinks } from "@/components/NavLinks";
 import { RoleGate } from "@/components/RoleGate";
@@ -33,10 +33,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" className="py-3 text-[18px] font-semibold tracking-tight text-gray-900">verity</Link>
             <BrandChip />
             {chosen && <NavLinks role={user.role} />}
-            {chosen && <div className="ml-auto"><RoleSwitcher users={USERS} currentId={user.id} highlight={false} /></div>}
+            {chosen && <div className="ml-auto"><RoleSwitcher users={demoSignInEnabled() ? USERS : [user]} currentId={user.id} highlight={false} /></div>}
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-5 py-8">{chosen ? children : <RoleGate users={USERS} />}</main>
+        <main className="mx-auto max-w-6xl px-5 py-8">{chosen ? children : <RoleGate users={USERS} demo={demoSignInEnabled()} demoPassword={DEMO_PASSWORD} />}</main>
         <footer className="mx-auto max-w-6xl px-5 pb-10 pt-2 text-[12px] text-gray-400">
           Verity by Team Knox · <Link href="/about" className="hover:text-gray-600">How it works</Link>
         </footer>

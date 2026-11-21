@@ -175,5 +175,70 @@ CREATE TABLE IF NOT EXISTS ai_calls (
 );
 ALTER TABLE versions ADD COLUMN IF NOT EXISTS image_hash text;
 CREATE INDEX IF NOT EXISTS findings_sub_idx ON findings (submission_id, version_n);
-CREATE INDEX IF NOT EXISTS audit_sub_idx ON audit_events (submission_id)
+CREATE INDEX IF NOT EXISTS audit_sub_idx ON audit_events (submission_id);
+CREATE TABLE IF NOT EXISTS accounts (
+  id text PRIMARY KEY,
+  email text NOT NULL UNIQUE,
+  role text NOT NULL,
+  password_hash text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_sign_in timestamptz
+)
 `;
+
+/**
+ * Access limits inside the database (row-level security).
+ * Every query from a signed-in person runs as the role `verity_app`, which cannot bypass RLS,
+ * with `verity.role` and `verity.uid` set for that one transaction (see db.ts).
+ * So even a bug in the app code cannot let a creator read someone else's draft,
+ * change a brand rule, or edit the audit log.
+ * One statement per array item (some contain semicolons).
+ */
+const CANON = ["canon_meta", "products", "rules", "facts", "terms", "palette", "confidential_terms"];
+const ALL = [...CANON, "submissions", "versions", "checks", "findings", "comments", "approvals", "audit_events", "ai_calls", "rule_feedback", "false_alarms"];
+const pol = (t: string, name: string, body: string) => [`DROP POLICY IF EXISTS ${name} ON ${t}`, `CREATE POLICY ${name} ON ${t} ${body}`];
+const SIGNED_IN = "verity_role() IN ('creator','manager','compliance','admin')";
+const REVIEWER = "verity_role() IN ('manager','compliance','admin')";
+
+export const RLS_SQL: string[] = [
+  `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'verity_app') THEN CREATE ROLE verity_app NOLOGIN NOBYPASSRLS; END IF; END $$`,
+  `GRANT verity_app TO CURRENT_USER`,
+  `GRANT USAGE ON SCHEMA public TO verity_app`,
+  `GRANT SELECT, INSERT, UPDATE, DELETE ON ${ALL.join(", ")} TO verity_app`,
+  `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO verity_app`,
+  // passwords are never readable by the app role; sign-in runs as the system
+  `REVOKE ALL ON accounts FROM verity_app`,
+  `CREATE OR REPLACE FUNCTION verity_role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT coalesce(nullif(current_setting('verity.role', true), ''), 'anon') $$`,
+  `CREATE OR REPLACE FUNCTION verity_uid() RETURNS text LANGUAGE sql STABLE AS $$ SELECT coalesce(current_setting('verity.uid', true), '') $$`,
+  `CREATE OR REPLACE FUNCTION verity_can_see(sid int) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT EXISTS (SELECT 1 FROM submissions s WHERE s.id = sid AND (verity_role() IN ('manager','compliance','admin') OR s.author_id = verity_uid())) $$`,
+  ...ALL.map((t) => `ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`),
+  // brand rules, facts, terms: everyone signed in can read; only the admin can change
+  ...CANON.flatMap((t) => [...pol(t, "v_read", `FOR SELECT USING (${SIGNED_IN})`), ...pol(t, "v_admin_write", `FOR ALL USING (verity_role() = 'admin') WITH CHECK (verity_role() = 'admin')`)]),
+  // submissions: creators see and edit only their own; reviewers see all
+  ...pol("submissions", "v_read", `FOR SELECT USING (${REVIEWER} OR author_id = verity_uid())`),
+  ...pol("submissions", "v_insert", `FOR INSERT WITH CHECK (${SIGNED_IN} AND author_id = verity_uid())`),
+  ...pol("submissions", "v_update", `FOR UPDATE USING (verity_role() IN ('manager','compliance') OR author_id = verity_uid()) WITH CHECK (verity_role() IN ('manager','compliance') OR author_id = verity_uid())`),
+  // everything hanging off a submission follows the submission
+  ...["versions", "checks", "findings"].flatMap((t) => [
+    ...pol(t, "v_read", `FOR SELECT USING (verity_can_see(submission_id))`),
+    ...pol(t, "v_insert", `FOR INSERT WITH CHECK (verity_can_see(submission_id))`),
+    ...pol(t, "v_update", `FOR UPDATE USING (verity_can_see(submission_id)) WITH CHECK (verity_can_see(submission_id))`),
+  ]),
+  ...pol("comments", "v_read", `FOR SELECT USING (verity_can_see(submission_id))`),
+  ...pol("comments", "v_insert", `FOR INSERT WITH CHECK (verity_can_see(submission_id) AND author_id = verity_uid())`),
+  // approvals: only reviewers, only as themselves, never edited
+  ...pol("approvals", "v_read", `FOR SELECT USING (verity_can_see(submission_id))`),
+  ...pol("approvals", "v_insert", `FOR INSERT WITH CHECK (${REVIEWER} AND approver_id = verity_uid())`),
+  // audit log: append-only (no update or delete policy exists), written as yourself
+  ...pol("audit_events", "v_read", `FOR SELECT USING (${REVIEWER} OR (submission_id IS NOT NULL AND verity_can_see(submission_id)))`),
+  ...pol("audit_events", "v_insert", `FOR INSERT WITH CHECK (${SIGNED_IN} AND actor_id = verity_uid())`),
+  // AI call log (redacted inputs): the admin sees all; others only calls about content they can see
+  ...pol("ai_calls", "v_read", `FOR SELECT USING (verity_role() = 'admin' OR (submission_id IS NOT NULL AND verity_can_see(submission_id)))`),
+  ...pol("ai_calls", "v_insert", `FOR INSERT WITH CHECK (${SIGNED_IN})`),
+  // rule health
+  ...pol("rule_feedback", "v_read", `FOR SELECT USING (${SIGNED_IN})`),
+  ...pol("rule_feedback", "v_insert", `FOR INSERT WITH CHECK (${SIGNED_IN} AND user_id = verity_uid())`),
+  ...pol("false_alarms", "v_read", `FOR SELECT USING (${SIGNED_IN})`),
+  ...pol("false_alarms", "v_insert", `FOR INSERT WITH CHECK (${SIGNED_IN} AND created_by = verity_uid())`),
+  ...pol("false_alarms", "v_delete", `FOR DELETE USING (verity_role() = 'admin')`),
+];

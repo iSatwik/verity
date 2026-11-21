@@ -98,7 +98,7 @@ function countBy(fs: Finding[]) {
 async function insertFinding(q: Q, id: number, n: number, f: Finding, carry?: { status: string; reason: string | null; by: string | null }) {
   await q(
     "INSERT INTO findings (submission_id, version_n, location, category, severity, title, message, quote, suggestion, sources, method, status, decision_reason, decided_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14)",
-    [id, n, f.location, f.category, f.severity, f.title, f.message, f.quote ?? null, f.suggestion ?? null, JSON.stringify(f.sources), f.method, carry?.status ?? "open", carry ? `${carry.reason ?? ""} (carried over from the previous version)` : null, carry?.by ?? null],
+    [id, n, f.location, f.category, f.severity, f.title, f.message, f.quote ?? null, f.suggestion ?? null, JSON.stringify(f.sources), f.method, carry?.status ?? "open", carry ? (/\(carried over from an earlier version\)$/.test(carry.reason ?? "") ? carry.reason : `${(carry.reason ?? "").replace(/( \(carried over from the previous version\))+$/, "")} (carried over from an earlier version)`) : null, carry?.by ?? null],
   );
 }
 

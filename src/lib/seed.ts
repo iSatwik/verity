@@ -69,3 +69,14 @@ export async function resetDemo() {
   }
   await seedIfEmpty();
 }
+
+/** Create the demo accounts (scrypt-hashed passwords) if they are missing. */
+export async function ensureAccounts() {
+  const { hashPassword } = await import("./auth");
+  const { DEMO_PASSWORD } = await import("./users");
+  const have = await q<{ id: string }>("SELECT id FROM accounts");
+  for (const u of USERS) {
+    if (have.some((h) => h.id === u.id)) continue;
+    await q("INSERT INTO accounts (id, email, role, password_hash) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING", [u.id, u.email, u.role, hashPassword(DEMO_PASSWORD)]);
+  }
+}

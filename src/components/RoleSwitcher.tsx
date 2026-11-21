@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
-import { chooseRole } from "@/app/actions";
+import { chooseRole, signOutAction } from "@/app/actions";
 import type { DemoUser } from "@/lib/users";
 
 export function RoleSwitcher({ users, currentId, highlight }: { users: DemoUser[]; currentId: string; highlight?: boolean }) {
@@ -20,7 +20,8 @@ export function RoleSwitcher({ users, currentId, highlight }: { users: DemoUser[
       </button>
       {open && (
         <div role="menu" className="absolute right-0 z-40 mt-1 w-72 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-          <p className="px-3 pb-1 pt-2 text-[12px] text-gray-500">Switch person (demo, no sign-in)</p>
+          <p className="px-3 pb-1 pt-2 text-[12px] text-gray-500">Signed in as {me.email}</p>
+          {users.length > 1 && <p className="px-3 pb-1 pt-1 text-[11px] uppercase tracking-wide text-gray-400">Switch demo account</p>}
           {users.map((u) => (
             <button key={u.id} role="menuitem" disabled={pending}
               onClick={() => start(async () => { setOpen(false); await chooseRole(u.id, path === "/" ? undefined : path); })}
@@ -30,6 +31,9 @@ export function RoleSwitcher({ users, currentId, highlight }: { users: DemoUser[
               {u.id === me.id && <span className="text-brand-700">✓</span>}
             </button>
           ))}
+          <div className="my-1 border-t border-gray-100" />
+          <button role="menuitem" disabled={pending} onClick={() => start(async () => { setOpen(false); await signOutAction(); })}
+            className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50">Sign out</button>
         </div>
       )}
     </div>

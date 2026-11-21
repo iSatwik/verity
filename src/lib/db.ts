@@ -1,5 +1,6 @@
 import "server-only";
-import { SCHEMA_SQL } from "./schema";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { SCHEMA_SQL, RLS_SQL } from "./schema";
 
 /**
  * Tiny database layer.
@@ -9,9 +10,15 @@ import { SCHEMA_SQL } from "./schema";
  */
 
 type Row = Record<string, unknown>;
+/** Who a query runs as. "system" = the app itself (schema, seeding, sign-in), not limited by RLS. */
+export type Actor = { kind: "system" } | { kind: "user"; role: string; uid: string };
 interface Driver {
-  query<T = Row>(text: string, params?: unknown[]): Promise<T[]>;
+  query<T = Row>(text: string, params?: unknown[], actor?: Actor): Promise<T[]>;
 }
+const SYSTEM: Actor = { kind: "system" };
+const ANON: Actor = { kind: "user", role: "anon", uid: "" };
+// set_config('role', ...) is SET LOCAL ROLE: the rest of the transaction runs as verity_app, which cannot bypass RLS.
+const SET_ACTOR = "SELECT set_config('role', 'verity_app', true), set_config('verity.role', $1, true), set_config('verity.uid', $2, true)";
 
 const g = globalThis as unknown as {
   __verityDriver?: Promise<Driver>;
@@ -27,10 +34,17 @@ async function createDriver(): Promise<Driver> {
     const sql = postgres(url, { prepare: false, max: 1, idle_timeout: 20, connect_timeout: 15 });
     let chain: Promise<unknown> = Promise.resolve();
     return {
-      query<T>(text: string, params: unknown[] = []) {
+      query<T>(text: string, params: unknown[] = [], actor: Actor = SYSTEM) {
         // postgres.js would JSON-encode a string bound to a jsonb parameter a second time; send it as text and let Postgres parse it.
         const sqlText = text.replace(/(\$\d+)::jsonb/g, "$1::text::jsonb");
-        const run = chain.then(() => sql.unsafe(sqlText, params as never[]));
+        const run = chain.then(() =>
+          actor.kind === "system"
+            ? sql.unsafe(sqlText, params as never[])
+            : sql.begin(async (tx) => {
+                await tx.unsafe(SET_ACTOR, [actor.role, actor.uid]);
+                return tx.unsafe(sqlText, params as never[]);
+              }),
+        );
         chain = run.catch(() => undefined);
         return run as unknown as Promise<T[]>;
       },
@@ -41,9 +55,12 @@ async function createDriver(): Promise<Driver> {
   const db = new PGlite(dir);
   await db.waitReady;
   return {
-    async query<T>(text: string, params: unknown[] = []) {
-      const res = await db.query(text, params);
-      return res.rows as T[];
+    async query<T>(text: string, params: unknown[] = [], actor: Actor = SYSTEM) {
+      if (actor.kind === "system") return (await db.query(text, params)).rows as T[];
+      return db.transaction(async (tx) => {
+        await tx.query(SET_ACTOR, [actor.role, actor.uid]);
+        return (await tx.query(text, params)).rows as T[];
+      });
     },
   };
 }
@@ -60,8 +77,10 @@ async function ready(): Promise<void> {
       for (const stmt of SCHEMA_SQL.split(";\n").map((s) => s.trim()).filter(Boolean)) {
         await d.query(stmt);
       }
-      const { seedIfEmpty } = await import("./seed");
+      for (const stmt of RLS_SQL) await d.query(stmt);
+      const { seedIfEmpty, ensureAccounts } = await import("./seed");
       await seedIfEmpty();
+      await ensureAccounts();
     })().catch((e) => {
       g.__verityReady = undefined;
       throw e;
@@ -70,11 +89,34 @@ async function ready(): Promise<void> {
   return g.__verityReady;
 }
 
-/** Run a query after making sure the schema and demo data exist. */
+const systemScope = new AsyncLocalStorage<true>();
+/** Run `fn` as the app itself (seeding, reset, sign-in). Only call after checking permissions in code. */
+export function asSystem<T>(fn: () => Promise<T>): Promise<T> {
+  return systemScope.run(true, fn);
+}
+
+async function currentActor(): Promise<Actor> {
+  if (systemScope.getStore()) return SYSTEM;
+  let session: typeof import("./session");
+  try {
+    session = await import("./session");
+  } catch {
+    return SYSTEM; // scripts and tests outside Next
+  }
+  try {
+    const u = await session.sessionUser();
+    return u ? { kind: "user", role: u.role, uid: u.id } : ANON;
+  } catch {
+    // no request (build step, background work): nothing user-facing runs here
+    return SYSTEM;
+  }
+}
+
+/** Run a query as the signed-in person (database access limits apply), after making sure the schema and demo data exist. */
 export async function q<T = Row>(text: string, params: unknown[] = []): Promise<T[]> {
   await ready();
   const d = await driver();
-  return d.query<T>(text, params);
+  return d.query<T>(text, params, await currentActor());
 }
 
 /** Raw query without the ready() guard — only used by the seeder itself. */

@@ -3,9 +3,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { q } from "@/lib/db";
-import { currentUser, ROLE_COOKIE } from "@/lib/session";
-import { getUser } from "@/lib/users";
+import { q, q1, asSystem } from "@/lib/db";
+import { requireUser, SESSION_COOKIE } from "@/lib/session";
+import { USERS, DEMO_PASSWORD, demoSignInEnabled } from "@/lib/users";
+import { signSession, verifyPassword, lockedOut, noteFailure, clearFailures } from "@/lib/auth";
 import * as store from "@/lib/store";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
@@ -21,17 +22,54 @@ async function wrap(fn: () => Promise<void | string>, paths: string[] = []): Pro
   }
 }
 
-// ---------- role switcher (demo mode, no sign-in) ----------
-export async function chooseRole(userId: string, next?: string) {
+// ---------- sign-in ----------
+const homeFor = (role: string) => (role === "creator" ? "/submissions" : role === "admin" ? "/canon" : "/review");
+
+async function startSession(email: string, password: string): Promise<{ id: string; role: string } | string> {
+  const e = email.trim().toLowerCase();
+  if (!e || !password) return "Enter your email and password.";
+  if (lockedOut(e)) return "Too many wrong passwords. Try again in 10 minutes.";
+  const acc = await asSystem(() => q1<{ id: string; role: string; password_hash: string }>("SELECT id, role, password_hash FROM accounts WHERE email = $1", [e]));
+  if (!acc || !verifyPassword(password, acc.password_hash)) {
+    noteFailure(e);
+    return "That email and password don't match.";
+  }
+  clearFailures(e);
   const c = await cookies();
-  c.set(ROLE_COOKIE, getUser(userId).id, { path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax" });
-  const u = getUser(userId);
-  redirect(next || (u.role === "creator" ? "/submissions" : u.role === "admin" ? "/canon" : "/review"));
+  c.set(SESSION_COOKIE, signSession(acc.id, acc.role), { path: "/", httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 24 * 7 });
+  await asSystem(async () => {
+    await q("UPDATE accounts SET last_sign_in = now() WHERE id = $1", [acc.id]);
+    await store.audit(q, acc.id, "user.signed_in", null, {});
+  });
+  return acc;
+}
+
+export async function signInAction(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const r = await startSession(String(form.get("email") ?? ""), String(form.get("password") ?? ""));
+  if (typeof r === "string") return { ok: false, error: r };
+  const next = String(form.get("next") ?? "");
+  redirect(next.startsWith("/") && !next.startsWith("//") && next !== "/" ? next : homeFor(r.role));
+}
+
+/** One-click demo sign-in: the same password check, with the demo password filled in. */
+export async function chooseRole(userId: string, next?: string) {
+  if (!demoSignInEnabled()) throw new Error("Demo sign-in is turned off on this server.");
+  const u = USERS.find((x) => x.id === userId);
+  if (!u) throw new Error("Unknown person.");
+  const r = await startSession(u.email, DEMO_PASSWORD);
+  if (typeof r === "string") throw new Error(r);
+  redirect(next && next !== "/" && next.startsWith("/") && !next.startsWith("//") ? next : homeFor(r.role));
+}
+
+export async function signOutAction() {
+  const c = await cookies();
+  c.delete(SESSION_COOKIE);
+  redirect("/");
 }
 
 // ---------- submissions ----------
 export async function createAndCheck(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   let id = 0;
   const res = await wrap(async () => {
     const text = String(form.get("text") ?? "");
@@ -78,15 +116,15 @@ export async function extractFileText(form: FormData): Promise<{ text?: string; 
 }
 
 export async function runCheckAction(id: number): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   return wrap(() => store.runCheckFor(q, id, actor), [`/submissions/${id}`]);
 }
 export async function acceptFixAction(fid: number, subId: number, edited?: string | null): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   return wrap(() => store.acceptFix(q, fid, actor, edited), [`/submissions/${subId}`]);
 }
 export async function acceptAllAction(subId: number): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   return wrap(async () => {
     const sub = await store.getSubmission(q, subId);
     if (!sub) throw new Error("Not found");
@@ -100,39 +138,39 @@ export async function acceptAllAction(subId: number): Promise<ActionResult> {
   }, [`/submissions/${subId}`]);
 }
 export async function dismissAction(fid: number, subId: number, reason: string, note: string): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   return wrap(() => store.dismissFinding(q, fid, actor, reason, note), [`/submissions/${subId}`]);
 }
 export async function reopenFindingAction(fid: number, subId: number): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   return wrap(() => store.reopenFinding(q, fid, actor), [`/submissions/${subId}`]);
 }
 export async function saveDraftAction(subId: number, text: string, imageAlt: string | null, imageText: string | null, imageData?: string | null, base?: store.DraftBase): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   if (imageData && imageData.length > 6_000_000) return { ok: false, error: "Image is too large. Please use one under 4 MB." };
   return wrap(() => store.updateDraft(q, subId, actor, { text, imageAlt, imageText, imageData, base }), [`/submissions/${subId}`]);
 }
 export async function submitAction(subId: number): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   return wrap(() => store.submitForReview(q, subId, actor), [`/submissions/${subId}`, "/review"]);
 }
 export async function reviewAction(subId: number, decision: "approved" | "changes_requested" | "exception", note: string): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   return wrap(() => store.reviewDecision(q, subId, actor, decision, note), [`/submissions/${subId}`, "/review"]);
 }
 export async function reopenAction(subId: number): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   return wrap(() => store.reopen(q, subId, actor), [`/submissions/${subId}`]);
 }
 export async function commentAction(subId: number, body: string, quote: string | null): Promise<ActionResult> {
-  const actor = await currentUser();
+  const actor = await requireUser();
   return wrap(() => store.addComment(q, subId, actor, body, quote), [`/submissions/${subId}`]);
 }
 
 // ---------- brand rules (admin) ----------
 async function requireAdmin() {
-  const u = await currentUser();
-  if (u.role !== "admin") throw new Error("Only the brand admin can change the brand rules. Switch to Satwik (Brand admin) at the top right.");
+  const u = await requireUser();
+  if (u.role !== "admin") throw new Error("Only the brand admin can change the brand rules. Sign in as Satwik (Brand admin).");
   return u;
 }
 async function bumpCanon(actor: string, what: string, detail: Record<string, unknown>) {
@@ -224,8 +262,10 @@ export async function importGuidelineAction(form: FormData): Promise<ActionResul
 
 export async function resetDemoAction(): Promise<ActionResult> {
   return wrap(async () => {
+    const u = await requireUser();
+    if (u.role !== "admin") throw new Error("Only the brand admin can reset the demo data. Sign in as Satwik (Brand admin).");
     const { resetDemo } = await import("@/lib/seed");
-    await resetDemo();
+    await asSystem(resetDemo);
     return "Demo data reset.";
   }, ["/"]);
 }

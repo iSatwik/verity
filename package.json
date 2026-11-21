@@ -12,7 +12,9 @@
     "samples": "tsx scripts/try-samples.ts",
     "e2e": "node scripts/e2e/full-flow.mjs",
     "eval:images": "tsx scripts/eval-images.ts",
-    "eval:rules": "tsx scripts/eval-rule-health.ts"
+    "eval:rules": "tsx scripts/eval-rule-health.ts",
+    "test:access": "tsx scripts/test-access.ts",
+    "test:company-ai": "tsx scripts/test-company-ai.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",

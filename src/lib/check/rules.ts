@@ -350,7 +350,14 @@ export function runCodeChecks(canon: Canon, text: string, channel: string, locat
     if (hasTnc && hasDate) break;
     const offer = canon.facts.find((f) => f.kind === "offer" && f.status === "active" && !factIsExpired(f, today));
     const missing = [!hasDate && "an end date", !hasTnc && "\"T&C apply\""].filter(Boolean).join(" and ");
-    add({ category: "disclosure", severity: "major", title: "Offer is missing terms", message: `Offers must state ${missing}.`, quote: s.text, suggestion: `${s.text} ${offer?.suggested_copy && /\d{1,2}\s?%\s*off/i.test(s.text) ? offer.suggested_copy : "T&C apply."}`, sources: [ruleRef(canon, "C-5.2"), ruleRef(canon, "D-03"), ...(offer && /\d{1,2}\s?%\s*off/i.test(s.text) ? [factRef(offer)] : [])], start: s.start, end: s.end });
+    // Only suggest a fix that actually satisfies the rule (otherwise accepting it would loop).
+    const pct = /\d{1,2}\s?%\s*off/i.test(s.text);
+    const ends = offer?.valid_until ? (() => { const d = new Date(String(offer.valid_until).slice(0, 10) + "T00:00:00Z"); return isNaN(+d) ? null : `Offer ends ${d.getUTCDate()} ${d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" })} ${d.getUTCFullYear()}.`; })() : null;
+    const built = [!hasDate && ends, !hasTnc && "T&C apply."].filter(Boolean).join(" ");
+    const candidates = [pct && offer?.suggested_copy ? `${s.text} ${offer.suggested_copy}` : null, built ? `${s.text} ${built}` : null];
+    const fixes = (c: string) => (hasTnc || /t\s?&\s?c|terms (?:and|&) conditions|terms apply/i.test(c)) && (hasDate || /\b(?:ends?|till|until|valid (?:till|until))\b[^.!?]*\d|\b\d{1,2}\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/i.test(c));
+    const suggestion = candidates.find((c): c is string => !!c && fixes(c)) ?? null;
+    add({ category: "disclosure", severity: "major", title: "Offer is missing terms", message: `Offers must state ${missing}.${suggestion ? "" : " There is no approved end date for this offer, so add the date yourself."}`, quote: s.text, suggestion, sources: [ruleRef(canon, "C-5.2"), ruleRef(canon, "D-03"), ...(offer && /\d{1,2}\s?%\s*off/i.test(s.text) ? [factRef(offer)] : [])], start: s.start, end: s.end });
     break;
   }
 

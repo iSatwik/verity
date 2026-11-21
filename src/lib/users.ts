@@ -1,10 +1,12 @@
-// Demo users. Round 2 uses a one-click role switcher so judges can try every role
-// without creating accounts (the organisers require links that open without sign-in).
+// People in the demo workspace. Each one is a real account (email + password, stored as a
+// scrypt hash in the accounts table). The sign-in page also offers one-click demo sign-in,
+// which goes through the same password check. Turn it off with DEMO_SIGNIN=off.
 
 export type Role = "creator" | "manager" | "compliance" | "admin";
 
 export interface DemoUser {
   id: string;
+  email: string;
   name: string;
   initials: string;
   role: Role;
@@ -19,6 +21,7 @@ export interface DemoUser {
 export const USERS: DemoUser[] = [
   {
     id: "u_rahul",
+    email: "rahul@aranya.demo",
     name: "Rahul K.",
     initials: "RK",
     role: "creator",
@@ -30,6 +33,7 @@ export const USERS: DemoUser[] = [
   },
   {
     id: "u_ritika",
+    email: "ritika@aranya.demo",
     name: "Ritika S.",
     initials: "RS",
     role: "manager",
@@ -41,6 +45,7 @@ export const USERS: DemoUser[] = [
   },
   {
     id: "u_arjun",
+    email: "arjun@aranya.demo",
     name: "Arjun V.",
     initials: "AV",
     role: "compliance",
@@ -52,6 +57,7 @@ export const USERS: DemoUser[] = [
   },
   {
     id: "u_satwik",
+    email: "satwik@aranya.demo",
     name: "Satwik",
     initials: "SA",
     role: "admin",
@@ -70,3 +76,7 @@ export function getUser(id: string | undefined | null): DemoUser {
 export function userName(id: string): string {
   return USERS.find((u) => u.id === id)?.name ?? id;
 }
+
+/** Shared password of the demo accounts (shown on the sign-in page). */
+export const DEMO_PASSWORD = "aranya-demo";
+export const demoSignInEnabled = () => process.env.DEMO_SIGNIN !== "off";

@@ -1,5 +1,9 @@
 // AI layer. The AI only PROPOSES findings; code VERIFIES every citation before a finding can count.
-// Provider: Google Gemini (GEMINI_API_KEY). Without a key the app still works with code checks only.
+// Providers:
+//  - company: the company's own AI server (AI_BASE_URL, any OpenAI-compatible server such as Ollama, vLLM,
+//    LM Studio or LiteLLM). When set, it is used for everything and no content goes to an outside AI service.
+//  - gemini: hosted model (GEMINI_API_KEY).
+// Without either, the app still works with code checks only.
 // AI_MODE=mock gives deterministic fake AI answers, used only for local testing of the verifier.
 
 import type { Canon } from "../canon";
@@ -8,15 +12,60 @@ import { unmask } from "./redact";
 
 export interface AiLog { purpose: string; model: string; redacted_input: string; ok: boolean; latency_ms: number; error?: string }
 
-export function aiProvider(): "gemini" | "mock" | "none" {
+export function aiProvider(): "company" | "gemini" | "mock" | "none" {
   if (process.env.AI_MODE === "mock") return "mock";
+  if (process.env.AI_BASE_URL) return "company";
   if (process.env.GEMINI_API_KEY) return "gemini";
   return "none";
 }
 
+/** Host name of the company AI server, for the About page. */
+export function companyAiHost(): string | null {
+  try { return process.env.AI_BASE_URL ? new URL(process.env.AI_BASE_URL).host : null; } catch { return null; }
+}
+
+type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
+
+/** Call the company's own OpenAI-compatible server (chat/completions) and parse a JSON answer. */
+async function companyJSON(parts: Part[], log: (l: AiLog) => void, purpose: string, redactedInput: string): Promise<{ data: unknown; model: string } | null> {
+  const base = (process.env.AI_BASE_URL as string).replace(/\/+$/, "");
+  const model = (parts.some((p) => "inline_data" in p) && process.env.AI_VISION_MODEL) || process.env.AI_MODEL || "llama3.2-vision";
+  const content = parts.map((p) => ("text" in p ? { type: "text", text: p.text } : { type: "image_url", image_url: { url: `data:${p.inline_data.mime_type};base64,${p.inline_data.data}` } }));
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (process.env.AI_API_KEY) headers.authorization = `Bearer ${process.env.AI_API_KEY}`;
+  const t0 = Date.now();
+  for (const jsonMode of [true, false]) {
+    try {
+      const res = await fetch(`${base}/chat/completions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ model, temperature: 0, messages: [{ role: "user", content }], ...(jsonMode ? { response_format: { type: "json_object" } } : {}) }),
+        signal: AbortSignal.timeout(Number(process.env.AI_TIMEOUT_MS ?? 60000)),
+      });
+      if (res.status === 400 && jsonMode) continue; // some servers don't support JSON mode; ask again without it
+      if (!res.ok) throw new Error(`${res.status} ${(await res.text()).slice(0, 200)}`);
+      const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+      const raw = body.choices?.[0]?.message?.content ?? "";
+      const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
+      const data = JSON.parse(json);
+      log({ purpose, model: `${model} (company server)`, redacted_input: redactedInput.slice(0, 4000), ok: true, latency_ms: Date.now() - t0 });
+      return { data, model };
+    } catch (e) {
+      log({ purpose, model: `${model} (company server)`, redacted_input: redactedInput.slice(0, 4000), ok: false, latency_ms: Date.now() - t0, error: (e as Error).message.slice(0, 300) });
+      return null;
+    }
+  }
+  return null;
+}
+
+/** Send a JSON request to whichever AI is configured. */
+function aiJSON(parts: Part[], log: (l: AiLog) => void, purpose: string, redactedInput: string) {
+  return aiProvider() === "company" ? companyJSON(parts, log, purpose, redactedInput) : geminiJSON(parts, log, purpose, redactedInput);
+}
+
 const MODELS = (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : []).concat(["gemini-3.5-flash", "gemini-2.5-flash"]);
 
-async function geminiJSON(parts: unknown[], log: (l: AiLog) => void, purpose: string, redactedInput: string): Promise<{ data: unknown; model: string } | null> {
+async function geminiJSON(parts: Part[], log: (l: AiLog) => void, purpose: string, redactedInput: string): Promise<{ data: unknown; model: string } | null> {
   const key = process.env.GEMINI_API_KEY as string;
   let lastErr = "";
   for (const model of MODELS) {
@@ -143,7 +192,7 @@ export async function aiReview(opts: {
     model = "mock";
     opts.log({ purpose: "review", model, redacted_input: opts.maskedText, ok: true, latency_ms: 1 });
   } else {
-    const r = await geminiJSON([{ text: prompt }], opts.log, "review", opts.maskedText);
+    const r = await aiJSON([{ text: prompt }], opts.log, "review", opts.maskedText);
     if (r) { raw = r.data as RawReview; model = r.model; }
   }
   if (!raw) throw new Error("the AI service did not answer, so only the code checks ran this time");
@@ -167,7 +216,7 @@ export async function aiDescribeImage(dataUrl: string, log: (l: AiLog) => void):
   }
   const m = dataUrl.match(/^data:(image\/[a-z+]+);base64,(.+)$/);
   if (!m) return null;
-  const r = await geminiJSON(
+  const r = await aiJSON(
     [
       { text: 'Read this marketing image. Return JSON only: {"text_in_image": "all text visible in the image, in reading order (skip blurred areas)", "alt_text": "one-sentence alt text describing the product and any text in the image", "logo": {"present": true or false, "box_2d": [ymin, xmin, ymax, xmax]}}. "logo" is the brand logo of Aranya Naturals: two green leaves inside a green circle, printed as a mark on the image (not on the product label and not real leaves). box_2d is in 0-1000 coordinates of the whole image. If there is no such logo, set present to false.' },
       { inline_data: { mime_type: m[1], data: m[2] } },
