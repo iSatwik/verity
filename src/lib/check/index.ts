@@ -8,7 +8,7 @@ import type { Canon } from "../canon";
 import { runCodeChecks } from "./rules";
 import { autoIntent } from "./core";
 import { redact } from "./redact";
-import { aiReview, aiDescribeImage, type AiLog } from "./ai";
+import { aiReview, aiDescribeImage, aiProvider, type AiLog } from "./ai";
 import { analyseImage } from "./image";
 import { ocrImage, privateBoxes, blurBoxes, dataUrlToBuffer, raster, measureTextContrast, checkLogo, logoFindings, type OcrResult, type Box, type TextContrast } from "./vision";
 import { type CheckInput, type CheckResult, type Finding, SEVERITY_ORDER } from "./types";
@@ -43,7 +43,10 @@ export async function runPipeline(canon: Canon, input: CheckInput, log: (l: AiLo
         notes.push(`${pb.count} private item(s) in the image were blurred before the image went to the AI.`);
       }
     }
-    const vision = useAi ? await aiDescribeImage(aiImage, log).catch(() => null) : null;
+    // fail closed: if we couldn't look for private words, the image only goes to the company's own AI server
+    const safeToSend = ocr !== null || aiProvider() === "company";
+    if (useAi && !safeToSend) notes.push("The image was not sent to the AI because it could not be checked for private words first.");
+    const vision = useAi && safeToSend ? await aiDescribeImage(aiImage, log).catch(() => null) : null;
     if (vision) {
       aiModel = vision.model;
       if (vision.text_in_image && !imageText.trim()) { imageText = vision.text_in_image; detected = vision.text_in_image; }

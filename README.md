@@ -67,6 +67,7 @@ Verity checks content **before it is published** (a social post, an ad, an email
   - OCR finds lines containing confidential terms, emails, phone numbers or card numbers, and those lines are pixelated before the image goes to the vision AI.
   - The whole line is hidden, not just the matched word, because OCR sometimes misreads one part.
   - Code still checks the original text.
+  - If OCR fails, the image is not sent to a hosted AI at all, because it couldn't be checked for private words first.
 - **Company AI server option.** Set `AI_BASE_URL` to any OpenAI-compatible server (Ollama, vLLM, LM Studio, LiteLLM) and Verity uses it for all text and image AI work. Then **no content leaves the company**. The About page shows which AI is in use.
 
 ### Loose ends closed
